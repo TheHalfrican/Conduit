@@ -8,7 +8,7 @@ export function EmptyState({ onAddScript }: EmptyStateProps) {
   return (
     <div className="flex-1 flex items-center justify-center">
       <div className="text-center max-w-sm">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent/10 flex items-center justify-center">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-none bg-hub-surface shadow-win-outset flex items-center justify-center">
           <svg
             className="w-8 h-8 text-accent"
             fill="none"

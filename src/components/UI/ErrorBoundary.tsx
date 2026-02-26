@@ -27,22 +27,24 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="h-screen w-screen flex items-center justify-center bg-hub-bg p-8">
-          <div className="max-w-lg bg-hub-surface border border-status-error/30 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-status-error mb-2">
+        <div className="h-screen w-screen flex items-center justify-center bg-[#008080] p-8">
+          <div className="max-w-lg bg-hub-surface shadow-win-outset rounded-none">
+            <div className="bg-status-error text-white font-bold px-2 py-1 text-sm">
               Something went wrong
-            </h2>
-            <pre className="text-xs text-hub-text-dim bg-hub-bg rounded-lg p-4 overflow-auto max-h-64 whitespace-pre-wrap">
-              {this.state.error?.message}
-              {"\n\n"}
-              {this.state.error?.stack}
-            </pre>
-            <button
-              onClick={() => this.setState({ hasError: false, error: null })}
-              className="mt-4 px-4 py-2 bg-accent text-hub-bg rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors"
-            >
-              Try Again
-            </button>
+            </div>
+            <div className="p-4">
+              <pre className="text-xs text-hub-text bg-white shadow-win-field rounded-none p-4 overflow-auto max-h-64 whitespace-pre-wrap font-mono">
+                {this.state.error?.message}
+                {"\n\n"}
+                {this.state.error?.stack}
+              </pre>
+              <button
+                onClick={() => this.setState({ hasError: false, error: null })}
+                className="mt-4 bg-win-button-face shadow-win-button rounded-none px-4 py-1.5 text-sm font-medium text-hub-text active:shadow-win-button-pressed"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         </div>
       );

@@ -4,9 +4,12 @@
 
 @layer base {
   body {
-    @apply bg-hub-bg text-hub-text font-sans antialiased;
+    @apply bg-hub-bg text-hub-text font-sans;
+    font-size: 11px;
     overflow: hidden;
     user-select: none;
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
   }
 
   * {
@@ -14,30 +17,105 @@
   }
 }
 
-/* Custom scrollbar */
+@layer components {
+  .win-titlebar {
+    background: linear-gradient(180deg, #0a246a 0%, #3a6ea5 100%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 12px;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+    padding: 2px 6px;
+  }
+
+  .win-raised {
+    @apply shadow-win-outset bg-hub-surface;
+  }
+
+  .win-sunken {
+    @apply shadow-win-inset bg-white;
+  }
+
+  .win-btn {
+    @apply bg-win-button-face shadow-win-button rounded-none px-4 py-1 text-hub-text font-sans;
+    font-size: 11px;
+    min-width: 75px;
+    text-align: center;
+  }
+
+  .win-btn:active {
+    @apply shadow-win-button-pressed;
+    padding-left: 17px;
+    padding-top: 5px;
+  }
+
+  .win-checkbox {
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    @apply shadow-win-field bg-white;
+    display: inline-block;
+    vertical-align: middle;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .win-checkbox:checked::after {
+    content: "\2713";
+    position: absolute;
+    top: -2px;
+    left: 1px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    color: #000000;
+  }
+}
+
+/* Win98 scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 16px;
+  height: 16px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #c0c0c0;
+  background-image: url("data:image/svg+xml,%3Csvg width='2' height='2' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23c0c0c0'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23c0c0c0'/%3E%3Crect x='0' y='1' width='1' height='1' fill='%23ffffff'/%3E%3Crect x='1' y='0' width='1' height='1' fill='%23ffffff'/%3E%3C/svg%3E");
+  background-size: 2px 2px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a3d;
-  border-radius: 3px;
+  background: #d4d0c8;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #404040,
+    inset 2px 2px 0 #d4d0c8, inset -2px -2px 0 #808080;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00d4aa;
+  background: #d4d0c8;
 }
 
-/* Terminal output scrollbar */
+::-webkit-scrollbar-button:single-button {
+  background: #d4d0c8;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #404040;
+  display: block;
+  height: 16px;
+  width: 16px;
+}
+
+::-webkit-scrollbar-corner {
+  background: #c0c0c0;
+}
+
+/* Terminal output scrollbar - keep dark */
+.terminal-scroll::-webkit-scrollbar-track {
+  background: #000000;
+}
+
 .terminal-scroll::-webkit-scrollbar-thumb {
-  background: #333355;
+  background: #444444;
+  box-shadow: inset 1px 1px 0 #666666, inset -1px -1px 0 #222222;
 }
 
 .terminal-scroll::-webkit-scrollbar-thumb:hover {
-  background: #00d4aa;
+  background: #555555;
 }

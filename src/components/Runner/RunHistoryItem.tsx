@@ -31,11 +31,11 @@ function formatTimestamp(dateStr: string): string {
 
 export function RunHistoryItem({ record }: RunHistoryItemProps) {
   return (
-    <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-hub-bg/50 transition-colors">
+    <div className="flex items-center justify-between py-2 px-3 rounded-none hover:bg-accent hover:text-white">
       <div className="flex items-center gap-3">
         <span
           className={clsx(
-            "w-2 h-2 rounded-full",
+            "w-2 h-2 rounded-none",
             record.status === "success" && "bg-status-success",
             record.status === "error" && "bg-status-error",
             record.status === "running" && "bg-status-running animate-pulse",
@@ -43,10 +43,10 @@ export function RunHistoryItem({ record }: RunHistoryItemProps) {
           )}
         />
         <div>
-          <span className="text-xs text-hub-text">
+          <span className="text-xs">
             {formatTimestamp(record.startedAt)}
           </span>
-          <span className="text-xs text-hub-text-dim ml-2">
+          <span className="text-xs opacity-70 ml-2">
             {formatDuration(record.startedAt, record.finishedAt)}
           </span>
         </div>
@@ -56,22 +56,22 @@ export function RunHistoryItem({ record }: RunHistoryItemProps) {
         {record.exitCode !== null && (
           <span
             className={clsx(
-              "text-xs px-2 py-0.5 rounded-full font-mono",
+              "text-xs px-2 py-0.5 rounded-none font-mono border border-hub-border bg-hub-surface",
               record.exitCode === 0
-                ? "bg-status-success/10 text-status-success"
-                : "bg-status-error/10 text-status-error",
+                ? "text-status-success"
+                : "text-status-error",
             )}
           >
             exit {record.exitCode}
           </span>
         )}
         {record.status === "running" && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-status-running/10 text-status-running">
+          <span className="text-xs px-2 py-0.5 rounded-none border border-hub-border bg-hub-surface text-status-running">
             running
           </span>
         )}
         {record.status === "cancelled" && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-hub-text-dim/10 text-hub-text-dim">
+          <span className="text-xs px-2 py-0.5 rounded-none border border-hub-border bg-hub-surface text-hub-text-dim">
             cancelled
           </span>
         )}

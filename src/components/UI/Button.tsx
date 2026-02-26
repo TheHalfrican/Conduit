@@ -18,14 +18,15 @@ export function Button({
     <button
       className={twMerge(
         clsx(
-          "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent/50 disabled:opacity-50 disabled:cursor-not-allowed",
+          "inline-flex items-center justify-center font-medium rounded-none transition-colors focus-visible:outline-1 focus-visible:outline-dotted focus-visible:-outline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed",
           {
-            "bg-accent text-hub-bg hover:bg-accent-hover": variant === "primary",
-            "bg-hub-surface text-hub-text border border-hub-border hover:bg-hub-border/50":
+            "bg-accent text-white shadow-win-button active:shadow-win-button-pressed":
+              variant === "primary",
+            "bg-win-button-face text-hub-text shadow-win-button active:shadow-win-button-pressed":
               variant === "secondary",
-            "bg-status-error/10 text-status-error hover:bg-status-error/20":
+            "bg-win-button-face text-status-error shadow-win-button active:shadow-win-button-pressed":
               variant === "danger",
-            "text-hub-text-dim hover:text-hub-text hover:bg-hub-surface":
+            "text-hub-text hover:shadow-win-button active:shadow-win-button-pressed":
               variant === "ghost",
           },
           {

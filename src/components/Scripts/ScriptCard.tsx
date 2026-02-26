@@ -63,12 +63,12 @@ function ScriptCard({ script }: ScriptCardProps) {
   return (
     <div
       onClick={() => selectScript(script)}
-      className="bg-hub-surface border border-hub-border rounded-xl p-4 hover:border-accent/30 transition-all cursor-pointer group relative"
+      className="bg-hub-surface shadow-win-outset rounded-none p-3 hover:bg-[#d4d0c8] active:shadow-win-inset cursor-pointer group relative"
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span
-            className="w-3 h-3 rounded-full shrink-0"
+            className="w-3 h-3 rounded-none shrink-0"
             style={{ backgroundColor: script.color }}
           />
           <h3 className="text-sm font-semibold text-hub-text truncate">
@@ -80,9 +80,8 @@ function ScriptCard({ script }: ScriptCardProps) {
 
       {category && (
         <span
-          className="inline-block text-xs px-2 py-0.5 rounded-full mb-2 opacity-80"
+          className="inline-block text-xs px-2 py-0.5 rounded-none mb-2 border border-hub-border"
           style={{
-            backgroundColor: category.color + "20",
             color: category.color,
           }}
         >
@@ -96,7 +95,7 @@ function ScriptCard({ script }: ScriptCardProps) {
         </p>
       )}
 
-      <div className="flex items-center justify-between mt-auto pt-2 border-t border-hub-border/50">
+      <div className="flex items-center justify-between mt-auto pt-2 border-t border-hub-border">
         <div className="flex items-center gap-2">
           {lastRun && (
             <>
@@ -138,7 +137,7 @@ interface ScriptGridProps {
 
 export function ScriptGrid({ scripts }: ScriptGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
       {scripts.map((script) => (
         <ScriptCard key={script.id} script={script} />
       ))}

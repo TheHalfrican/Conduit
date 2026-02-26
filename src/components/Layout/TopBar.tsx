@@ -14,10 +14,10 @@ export function TopBar({ onAddScript, searchInputRef }: TopBarProps) {
   const setViewMode = useScriptStore((s) => s.setViewMode);
 
   return (
-    <header className="h-14 bg-hub-surface border-b border-hub-border flex items-center gap-3 px-4 shrink-0">
+    <header className="h-10 bg-hub-surface shadow-win-outset flex items-center gap-3 px-3 shrink-0">
       <div className="relative flex-1 max-w-sm">
         <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-hub-text-dim"
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-hub-text-dim"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -35,18 +35,18 @@ export function TopBar({ onAddScript, searchInputRef }: TopBarProps) {
           placeholder="Search scripts... (Cmd+F)"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-hub-bg border border-hub-border rounded-lg pl-9 pr-3 py-1.5 text-sm text-hub-text placeholder:text-hub-text-dim focus:outline-none focus:border-accent transition-colors"
+          className="w-full bg-white shadow-win-field rounded-none pl-8 pr-3 py-1 text-sm text-hub-text placeholder:text-hub-text-dim focus:outline-none"
         />
       </div>
 
-      <div className="flex items-center gap-1 bg-hub-bg rounded-lg p-0.5 border border-hub-border">
+      <div className="flex items-center gap-0.5">
         <button
           onClick={() => setViewMode("card")}
           className={clsx(
-            "px-2.5 py-1 rounded-md text-xs transition-colors",
+            "px-2 py-1 text-xs",
             viewMode === "card"
-              ? "bg-hub-surface text-hub-text"
-              : "text-hub-text-dim hover:text-hub-text",
+              ? "shadow-win-button-pressed bg-hub-surface text-hub-text"
+              : "shadow-win-button bg-win-button-face text-hub-text-dim hover:text-hub-text",
           )}
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -56,10 +56,10 @@ export function TopBar({ onAddScript, searchInputRef }: TopBarProps) {
         <button
           onClick={() => setViewMode("list")}
           className={clsx(
-            "px-2.5 py-1 rounded-md text-xs transition-colors",
+            "px-2 py-1 text-xs",
             viewMode === "list"
-              ? "bg-hub-surface text-hub-text"
-              : "text-hub-text-dim hover:text-hub-text",
+              ? "shadow-win-button-pressed bg-hub-surface text-hub-text"
+              : "shadow-win-button bg-win-button-face text-hub-text-dim hover:text-hub-text",
           )}
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

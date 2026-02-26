@@ -78,48 +78,36 @@ export function ScheduleDialog({
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
-      <div className="bg-hub-surface border border-hub-border rounded-xl w-full max-w-sm mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-hub-border">
-          <h2 className="text-base font-semibold text-hub-text">
+      <div className="bg-hub-surface shadow-win-outset rounded-none w-full max-w-sm mx-4">
+        <div className="win-titlebar px-2 py-1 flex items-center justify-between">
+          <span className="font-bold text-white">
             {schedule ? "Edit Schedule" : "Add Schedule"}
-          </h2>
+          </span>
           <button
             onClick={onClose}
-            className="text-hub-text-dim hover:text-hub-text transition-colors"
+            className="bg-win-button-face shadow-win-button text-hub-text px-1.5 py-0 text-xs font-bold hover:shadow-win-button-pressed leading-tight"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            X
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-3 space-y-3">
           {/* Schedule Type */}
           <div>
-            <label className="block text-xs font-medium text-hub-text-dim mb-2">
+            <label className="block text-xs font-medium text-hub-text mb-2">
               Type
             </label>
-            <div className="flex gap-1 bg-hub-bg rounded-lg p-0.5 border border-hub-border">
+            <div className="flex gap-0.5">
               {(["daily", "weekly", "interval"] as const).map((type) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setScheduleType(type)}
                   className={clsx(
-                    "flex-1 px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-colors",
+                    "flex-1 px-3 py-1 text-xs font-medium capitalize",
                     scheduleType === type
-                      ? "bg-hub-surface text-hub-text"
-                      : "text-hub-text-dim hover:text-hub-text",
+                      ? "shadow-win-button-pressed bg-hub-surface text-hub-text"
+                      : "shadow-win-button bg-win-button-face text-hub-text hover:bg-hub-surface",
                   )}
                 >
                   {type}
@@ -131,14 +119,14 @@ export function ScheduleDialog({
           {/* Time picker for daily/weekly */}
           {scheduleType !== "interval" && (
             <div>
-              <label className="block text-xs font-medium text-hub-text-dim mb-1">
+              <label className="block text-xs font-medium text-hub-text mb-1">
                 Time
               </label>
               <input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full bg-hub-bg border border-hub-border rounded-lg px-3 py-2 text-sm text-hub-text focus:outline-none focus:border-accent"
+                className="w-full bg-white shadow-win-field rounded-none px-2 py-1.5 text-sm text-hub-text focus:outline-none"
               />
             </div>
           )}
@@ -146,20 +134,20 @@ export function ScheduleDialog({
           {/* Day picker for weekly */}
           {scheduleType === "weekly" && (
             <div>
-              <label className="block text-xs font-medium text-hub-text-dim mb-2">
+              <label className="block text-xs font-medium text-hub-text mb-2">
                 Day
               </label>
-              <div className="flex gap-1">
+              <div className="flex gap-0.5">
                 {WEEKDAYS.map((day, i) => (
                   <button
                     key={day}
                     type="button"
                     onClick={() => setWeekday(i)}
                     className={clsx(
-                      "flex-1 py-1.5 rounded-md text-xs font-medium transition-colors",
+                      "flex-1 py-1 text-xs font-medium",
                       weekday === i
-                        ? "bg-accent text-hub-bg"
-                        : "bg-hub-bg text-hub-text-dim hover:text-hub-text border border-hub-border",
+                        ? "shadow-win-button-pressed bg-accent text-white"
+                        : "shadow-win-button bg-win-button-face text-hub-text",
                     )}
                   >
                     {day}
@@ -172,7 +160,7 @@ export function ScheduleDialog({
           {/* Interval picker */}
           {scheduleType === "interval" && (
             <div>
-              <label className="block text-xs font-medium text-hub-text-dim mb-1">
+              <label className="block text-xs font-medium text-hub-text mb-1">
                 Interval
               </label>
               <div className="flex gap-2 items-center">
@@ -183,7 +171,7 @@ export function ScheduleDialog({
                   onChange={(e) =>
                     setIntervalSeconds(Math.max(60, Number(e.target.value) * 60))
                   }
-                  className="w-24 bg-hub-bg border border-hub-border rounded-lg px-3 py-2 text-sm text-hub-text focus:outline-none focus:border-accent"
+                  className="w-24 bg-white shadow-win-field rounded-none px-2 py-1.5 text-sm text-hub-text focus:outline-none"
                 />
                 <span className="text-sm text-hub-text-dim">minutes</span>
               </div>

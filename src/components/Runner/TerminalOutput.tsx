@@ -40,8 +40,8 @@ export function TerminalOutput({ lines }: TerminalOutputProps) {
 
   if (lines.length === 0) {
     return (
-      <div className="bg-hub-bg border border-hub-border rounded-lg p-4 h-64 flex items-center justify-center">
-        <span className="text-sm text-hub-text-dim">
+      <div className="bg-black shadow-win-inset rounded-none p-4 h-64 flex items-center justify-center">
+        <span className="text-sm text-[#808080]">
           No output yet. Run the script to see output here.
         </span>
       </div>
@@ -57,7 +57,7 @@ export function TerminalOutput({ lines }: TerminalOutputProps) {
       </div>
       <div
         ref={parentRef}
-        className="bg-hub-bg border border-hub-border rounded-lg h-64 overflow-auto font-mono text-xs terminal-scroll"
+        className="bg-black shadow-win-inset rounded-none h-64 overflow-auto font-mono text-xs terminal-scroll"
       >
         <div
           style={{
@@ -83,7 +83,7 @@ export function TerminalOutput({ lines }: TerminalOutputProps) {
                   "px-3 py-0.5 whitespace-pre-wrap break-all",
                   line.stream === "stderr"
                     ? "text-status-error"
-                    : "text-hub-text",
+                    : "text-[#c0c0c0]",
                 )}
               >
                 {line.text}

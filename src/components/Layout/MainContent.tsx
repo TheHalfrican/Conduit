@@ -41,16 +41,18 @@ export function MainContent({ onAddScript }: MainContentProps) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
-      {filtered.length === 0 ? (
-        <div className="flex items-center justify-center h-full text-hub-text-dim text-sm">
-          No scripts match your search
-        </div>
-      ) : viewMode === "card" ? (
-        <ScriptGrid scripts={filtered} />
-      ) : (
-        <ScriptList scripts={filtered} />
-      )}
+    <div className="flex-1 overflow-y-auto">
+      <div className="bg-white shadow-win-inset m-1 p-2">
+        {filtered.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-hub-text-dim text-sm">
+            No scripts match your search
+          </div>
+        ) : viewMode === "card" ? (
+          <ScriptGrid scripts={filtered} />
+        ) : (
+          <ScriptList scripts={filtered} />
+        )}
+      </div>
     </div>
   );
 }

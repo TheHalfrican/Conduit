@@ -1,4 +1,3 @@
-import { clsx } from "clsx";
 import { useToastStore } from "../../hooks/useToast";
 
 export function ToastContainer() {
@@ -12,15 +11,15 @@ export function ToastContainer() {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={clsx(
-            "px-4 py-2.5 rounded-lg text-sm font-medium shadow-lg border animate-in slide-in-from-right transition-all cursor-pointer",
-            toast.type === "success" &&
-              "bg-status-success/10 text-status-success border-status-success/30",
-            toast.type === "error" &&
-              "bg-status-error/10 text-status-error border-status-error/30",
-          )}
+          className="px-4 py-2.5 rounded-none shadow-win-outset border-none bg-hub-surface text-hub-text text-sm font-medium animate-in slide-in-from-right cursor-pointer flex items-center gap-2"
           onClick={() => removeToast(toast.id)}
         >
+          {toast.type === "success" && (
+            <span className="text-status-success font-bold">&#10003;</span>
+          )}
+          {toast.type === "error" && (
+            <span className="text-status-error font-bold">&#10007;</span>
+          )}
           {toast.message}
         </div>
       ))}

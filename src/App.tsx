@@ -56,7 +56,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="h-screen w-screen flex flex-col overflow-hidden bg-hub-bg">
+      <div className="h-screen w-screen flex flex-col overflow-hidden bg-hub-bg shadow-win-outset">
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />
           <div className="flex-1 flex flex-col overflow-hidden">

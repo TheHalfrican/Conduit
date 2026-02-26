@@ -20,7 +20,7 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
   const [path, setPath] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<number>(0);
-  const [color, setColor] = useState("#00d4aa");
+  const [color, setColor] = useState("#0054e3");
 
   useEffect(() => {
     if (isOpen && categories.length > 0 && categoryId === 0) {
@@ -33,7 +33,7 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
     setPath("");
     setDescription("");
     setCategoryId(categories[0]?.id ?? 0);
-    setColor("#00d4aa");
+    setColor("#0054e3");
   }
 
   async function handlePickFile() {
@@ -81,22 +81,20 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
-      <div className="bg-hub-surface border border-hub-border rounded-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-hub-border">
-          <h2 className="text-base font-semibold text-hub-text">Add Script</h2>
+      <div className="bg-hub-surface shadow-win-outset rounded-none w-full max-w-md mx-4">
+        <div className="win-titlebar px-2 py-1 flex items-center justify-between">
+          <span className="font-bold text-white">Add Script</span>
           <button
             onClick={onClose}
-            className="text-hub-text-dim hover:text-hub-text transition-colors"
+            className="bg-win-button-face shadow-win-button text-hub-text px-1.5 py-0 text-xs font-bold hover:shadow-win-button-pressed leading-tight"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            X
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-3 space-y-3">
           <div>
-            <label className="block text-xs font-medium text-hub-text-dim mb-1">
+            <label className="block text-xs font-medium text-hub-text mb-1">
               Script File
             </label>
             <div className="flex gap-2">
@@ -105,7 +103,7 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
                 value={path}
                 readOnly
                 placeholder="Select a script file..."
-                className="flex-1 bg-hub-bg border border-hub-border rounded-lg px-3 py-2 text-sm text-hub-text placeholder:text-hub-text-dim focus:outline-none"
+                className="flex-1 bg-white shadow-win-field rounded-none px-2 py-1.5 text-sm text-hub-text placeholder:text-hub-text-dim focus:outline-none"
               />
               <Button type="button" variant="secondary" onClick={handlePickFile}>
                 Browse
@@ -114,7 +112,7 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-hub-text-dim mb-1">
+            <label className="block text-xs font-medium text-hub-text mb-1">
               Name
             </label>
             <input
@@ -122,13 +120,13 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Script name"
-              className="w-full bg-hub-bg border border-hub-border rounded-lg px-3 py-2 text-sm text-hub-text placeholder:text-hub-text-dim focus:outline-none focus:border-accent"
+              className="w-full bg-white shadow-win-field rounded-none px-2 py-1.5 text-sm text-hub-text placeholder:text-hub-text-dim focus:outline-none"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-hub-text-dim mb-1">
+            <label className="block text-xs font-medium text-hub-text mb-1">
               Description
             </label>
             <textarea
@@ -136,18 +134,18 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
               rows={2}
-              className="w-full bg-hub-bg border border-hub-border rounded-lg px-3 py-2 text-sm text-hub-text placeholder:text-hub-text-dim focus:outline-none focus:border-accent resize-none"
+              className="w-full bg-white shadow-win-field rounded-none px-2 py-1.5 text-sm text-hub-text placeholder:text-hub-text-dim focus:outline-none resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-hub-text-dim mb-1">
+            <label className="block text-xs font-medium text-hub-text mb-1">
               Category
             </label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(Number(e.target.value))}
-              className="w-full bg-hub-bg border border-hub-border rounded-lg px-3 py-2 text-sm text-hub-text focus:outline-none focus:border-accent"
+              className="w-full bg-white shadow-win-field rounded-none px-2 py-1.5 text-sm text-hub-text focus:outline-none"
             >
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
@@ -158,7 +156,7 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-hub-text-dim mb-1.5">
+            <label className="block text-xs font-medium text-hub-text mb-1.5">
               Color
             </label>
             <ColorPicker value={color} onChange={setColor} />

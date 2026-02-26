@@ -35,14 +35,16 @@ export function ConfirmDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="bg-hub-surface border border-hub-border rounded-xl p-0 backdrop:bg-black/60 max-w-sm w-full"
+      className="bg-hub-surface shadow-win-outset rounded-none p-0 backdrop:bg-black/60 max-w-sm w-full"
       onClose={onCancel}
     >
-      <div className="p-6">
-        <h3 className="text-lg font-semibold text-hub-text mb-2">{title}</h3>
-        <p className="text-sm text-hub-text-dim">{message}</p>
+      <div className="win-titlebar px-2 py-1">
+        <span className="font-bold text-white">{title}</span>
       </div>
-      <div className="flex justify-end gap-2 px-6 pb-6">
+      <div className="p-4">
+        <p className="text-sm text-hub-text">{message}</p>
+      </div>
+      <div className="flex justify-end gap-2 px-4 pb-4">
         <Button variant="secondary" onClick={onCancel}>
           Cancel
         </Button>

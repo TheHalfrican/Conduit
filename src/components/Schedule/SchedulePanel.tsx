@@ -82,21 +82,15 @@ export function SchedulePanel({ scriptId }: SchedulePanelProps) {
           {schedules.map((schedule) => (
             <div
               key={schedule.id}
-              className="flex items-center justify-between py-2 px-3 rounded-lg bg-hub-surface border border-hub-border/50 group"
+              className="flex items-center justify-between py-2 px-3 rounded-none bg-hub-surface shadow-win-outset group"
             >
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => handleToggle(schedule)}
-                  className={`relative w-8 h-4 rounded-full transition-colors ${
-                    schedule.enabled ? "bg-accent" : "bg-hub-border"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
-                      schedule.enabled ? "left-4" : "left-0.5"
-                    }`}
-                  />
-                </button>
+                <input
+                  type="checkbox"
+                  className="win-checkbox"
+                  checked={schedule.enabled}
+                  onChange={() => handleToggle(schedule)}
+                />
                 <span className="text-sm text-hub-text">
                   {formatScheduleDescription(schedule)}
                 </span>
