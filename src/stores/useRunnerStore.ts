@@ -42,6 +42,9 @@ export const useRunnerStore = create<RunnerState>()((set, get) => ({
       running.set(scriptId, runId);
       return { runningScripts: running };
     });
+
+    // Reload history so the new "running" record appears immediately
+    get().loadHistory(scriptId);
   },
 
   cancelScript: async (scriptId) => {

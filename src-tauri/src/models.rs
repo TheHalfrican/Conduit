@@ -78,3 +78,16 @@ pub struct NewSchedule {
     pub weekday: Option<i32>,
     pub interval_seconds: Option<i64>,
 }
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Settings {
+    pub id: i64,
+    pub editor_path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateSettings {
+    pub editor_path: Option<String>,
+}

@@ -62,3 +62,12 @@ export interface NewSchedule {
   weekday: number | null;
   intervalSeconds: number | null;
 }
+
+export interface Settings {
+  id: number;
+  editorPath: string;
+}
+
+export interface UpdateSettings {
+  editorPath: string | null;
+}

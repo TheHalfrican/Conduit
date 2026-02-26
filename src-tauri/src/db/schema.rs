@@ -49,6 +49,13 @@ pub fn initialize(conn: &Connection) -> Result<(), rusqlite::Error> {
         CREATE INDEX IF NOT EXISTS idx_run_history_started ON run_history(started_at);
         CREATE INDEX IF NOT EXISTS idx_schedules_script ON schedules(script_id);
 
+        CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            editor_path TEXT NOT NULL DEFAULT ''
+        );
+
+        INSERT OR IGNORE INTO settings (id) VALUES (1);
+
         INSERT OR IGNORE INTO categories (id, name, color, sort_order) VALUES (1, 'General', '#00d4aa', 0);
         ",
     )?;

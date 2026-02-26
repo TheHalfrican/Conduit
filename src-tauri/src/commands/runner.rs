@@ -57,7 +57,7 @@ pub async fn run_script(
     };
     let record_id = record.id;
 
-    // Spawn the script process
+    // Spawn the script process in its own process group so we can kill the whole tree
     let mut child = Command::new("/bin/bash")
         .arg(&script_path)
         .env(
@@ -66,6 +66,7 @@ pub async fn run_script(
         )
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
+        .process_group(0)
         .spawn()
         .map_err(|e| e.to_string())?;
 
@@ -158,12 +159,22 @@ pub async fn run_script(
         }
 
         // Wait for process to finish
-        let exit_code = match child.wait().await {
-            Ok(status) => status.code().unwrap_or(-1),
-            Err(_) => -1,
+        let wait_result = child.wait().await;
+        let (exit_code, was_signalled) = match &wait_result {
+            Ok(status) => (
+                status.code().unwrap_or(-1),
+                status.code().is_none(), // No exit code means killed by signal
+            ),
+            Err(_) => (-1, false),
         };
 
-        let status = if exit_code == 0 { "success" } else { "error" };
+        let status = if exit_code == 0 {
+            "success"
+        } else if was_signalled {
+            "cancelled"
+        } else {
+            "error"
+        };
         let finished_at = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
         // Update run record via AppHandle state
@@ -204,7 +215,9 @@ pub fn cancel_script(runner: State<'_, RunnerState>, script_id: i64) -> Result<(
     let procs = runner.active_processes.lock().map_err(|e| e.to_string())?;
     if let Some(&pid) = procs.get(&script_id) {
         unsafe {
-            libc::kill(pid as i32, libc::SIGTERM);
+            // Kill the entire process group (negative PID) so child processes
+            // like rsync and piped commands are also terminated
+            libc::kill(-(pid as i32), libc::SIGTERM);
         }
         Ok(())
     } else {

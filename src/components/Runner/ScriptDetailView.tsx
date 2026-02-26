@@ -3,6 +3,7 @@ import type { Script } from "../../types";
 import { useScriptStore } from "../../stores/useScriptStore";
 import { useCategoryStore } from "../../stores/useCategoryStore";
 import { useRunnerStore } from "../../stores/useRunnerStore";
+import { useSettingsStore } from "../../stores/useSettingsStore";
 import { useScriptRunner } from "../../hooks/useScriptRunner";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "../UI/Button";
@@ -23,6 +24,8 @@ export function ScriptDetailView({ script }: ScriptDetailViewProps) {
   const loadHistory = useRunnerStore((s) => s.loadHistory);
   const clearHistory = useRunnerStore((s) => s.clearHistory);
   const histories = useRunnerStore((s) => s.histories);
+  const openInEditor = useSettingsStore((s) => s.openInEditor);
+  const editorPath = useSettingsStore((s) => s.settings?.editorPath);
   const { run, cancel, isRunning, output } = useScriptRunner(script.id);
   const toast = useToast();
 
@@ -58,6 +61,18 @@ export function ScriptDetailView({ script }: ScriptDetailViewProps) {
       toast.success("Script deleted");
     } catch {
       toast.error("Failed to delete script");
+    }
+  }
+
+  async function handleOpenInEditor() {
+    if (!editorPath) {
+      toast.error("Set an editor in Settings first");
+      return;
+    }
+    try {
+      await openInEditor(script.path);
+    } catch {
+      toast.error("Failed to open editor");
     }
   }
 
@@ -117,6 +132,13 @@ export function ScriptDetailView({ script }: ScriptDetailViewProps) {
             <Button
               variant="ghost"
               size="sm"
+              onClick={handleOpenInEditor}
+            >
+              Open
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowEdit(true)}
             >
               Edit
@@ -158,7 +180,7 @@ export function ScriptDetailView({ script }: ScriptDetailViewProps) {
         {/* Terminal Output */}
         <div>
           <h3 className="text-sm font-medium text-hub-text mb-2">Output</h3>
-          <TerminalOutput lines={output} />
+          <TerminalOutput lines={output} isRunning={isRunning} />
         </div>
 
         {/* Schedule Panel */}

@@ -38,6 +38,9 @@ pub fn run() {
             commands::scheduler::toggle_schedule,
             commands::scheduler::get_schedules,
             commands::scheduler::sync_schedules,
+            commands::settings::get_settings,
+            commands::settings::update_settings,
+            commands::settings::open_in_editor,
         ])
         .setup(|_app| {
             Ok(())

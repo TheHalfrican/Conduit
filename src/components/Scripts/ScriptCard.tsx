@@ -5,8 +5,12 @@ import { useCategoryStore } from "../../stores/useCategoryStore";
 import { useRunnerStore } from "../../stores/useRunnerStore";
 import { useScheduleStore } from "../../stores/useScheduleStore";
 import { useScriptRunner } from "../../hooks/useScriptRunner";
+import { useScriptContextMenu } from "../../hooks/useScriptContextMenu";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "../UI/Button";
+import { ContextMenu } from "../UI/ContextMenu";
+import { ConfirmDialog } from "../UI/ConfirmDialog";
+import { EditScriptDialog } from "./EditScriptDialog";
 import { ScheduleIndicator } from "../Schedule/ScheduleIndicator";
 
 function formatRelativeTime(dateStr: string): string {
@@ -37,6 +41,7 @@ function ScriptCard({ script }: ScriptCardProps) {
   const schedules = schedulesMap.get(script.id) ?? [];
   const { run, isRunning } = useScriptRunner(script.id);
   const toast = useToast();
+  const ctx = useScriptContextMenu(script);
 
   const category = categories.find((c) => c.id === script.categoryId);
   const history = histories.get(script.id);
@@ -63,6 +68,7 @@ function ScriptCard({ script }: ScriptCardProps) {
   return (
     <div
       onClick={() => selectScript(script)}
+      onContextMenu={ctx.handleContextMenu}
       className="bg-hub-surface shadow-win-outset rounded-none p-3 hover:bg-[#d4d0c8] active:shadow-win-inset cursor-pointer group relative"
     >
       <div className="flex items-start justify-between mb-2">
@@ -127,6 +133,27 @@ function ScriptCard({ script }: ScriptCardProps) {
           {isRunning ? "Running..." : "Run"}
         </Button>
       </div>
+
+      {ctx.contextMenu && (
+        <ContextMenu
+          x={ctx.contextMenu.x}
+          y={ctx.contextMenu.y}
+          items={ctx.menuItems}
+          onClose={ctx.closeMenu}
+        />
+      )}
+      <EditScriptDialog
+        script={script}
+        open={ctx.showEdit}
+        onClose={() => ctx.setShowEdit(false)}
+      />
+      <ConfirmDialog
+        open={ctx.showDelete}
+        title="Delete Script"
+        message={`Are you sure you want to delete "${script.name}"? This will also remove all run history and schedules.`}
+        onConfirm={ctx.handleDelete}
+        onCancel={() => ctx.setShowDelete(false)}
+      />
     </div>
   );
 }

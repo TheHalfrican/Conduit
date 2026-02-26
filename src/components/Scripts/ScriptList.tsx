@@ -4,8 +4,12 @@ import { useScriptStore } from "../../stores/useScriptStore";
 import { useCategoryStore } from "../../stores/useCategoryStore";
 import { useRunnerStore } from "../../stores/useRunnerStore";
 import { useScriptRunner } from "../../hooks/useScriptRunner";
+import { useScriptContextMenu } from "../../hooks/useScriptContextMenu";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "../UI/Button";
+import { ContextMenu } from "../UI/ContextMenu";
+import { ConfirmDialog } from "../UI/ConfirmDialog";
+import { EditScriptDialog } from "./EditScriptDialog";
 
 function ScriptRow({ script }: { script: Script }) {
   const selectScript = useScriptStore((s) => s.selectScript);
@@ -13,6 +17,7 @@ function ScriptRow({ script }: { script: Script }) {
   const histories = useRunnerStore((s) => s.histories);
   const { run, isRunning } = useScriptRunner(script.id);
   const toast = useToast();
+  const ctx = useScriptContextMenu(script);
 
   const category = categories.find((c) => c.id === script.categoryId);
   const history = histories.get(script.id);
@@ -30,6 +35,7 @@ function ScriptRow({ script }: { script: Script }) {
   return (
     <tr
       onClick={() => selectScript(script)}
+      onContextMenu={ctx.handleContextMenu}
       className="border-b border-hub-border hover:bg-accent hover:text-white cursor-pointer"
     >
       <td className="py-2 px-3">
@@ -82,6 +88,27 @@ function ScriptRow({ script }: { script: Script }) {
           {isRunning ? "Running..." : "Run"}
         </Button>
       </td>
+
+      {ctx.contextMenu && (
+        <ContextMenu
+          x={ctx.contextMenu.x}
+          y={ctx.contextMenu.y}
+          items={ctx.menuItems}
+          onClose={ctx.closeMenu}
+        />
+      )}
+      <EditScriptDialog
+        script={script}
+        open={ctx.showEdit}
+        onClose={() => ctx.setShowEdit(false)}
+      />
+      <ConfirmDialog
+        open={ctx.showDelete}
+        title="Delete Script"
+        message={`Are you sure you want to delete "${script.name}"? This will also remove all run history and schedules.`}
+        onConfirm={ctx.handleDelete}
+        onCancel={() => ctx.setShowDelete(false)}
+      />
     </tr>
   );
 }

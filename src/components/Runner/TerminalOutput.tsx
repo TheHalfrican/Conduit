@@ -12,9 +12,10 @@ interface OutputLine {
 
 interface TerminalOutputProps {
   lines: OutputLine[];
+  isRunning?: boolean;
 }
 
-export function TerminalOutput({ lines }: TerminalOutputProps) {
+export function TerminalOutput({ lines, isRunning }: TerminalOutputProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
 
@@ -41,9 +42,16 @@ export function TerminalOutput({ lines }: TerminalOutputProps) {
   if (lines.length === 0) {
     return (
       <div className="bg-black shadow-win-inset rounded-none p-4 h-64 flex items-center justify-center">
-        <span className="text-sm text-[#808080]">
-          No output yet. Run the script to see output here.
-        </span>
+        {isRunning ? (
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-4 h-4 border-2 border-[#00ff41] border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-[#00ff41]">Running...</span>
+          </div>
+        ) : (
+          <span className="text-sm text-[#808080]">
+            No output yet. Run the script to see output here.
+          </span>
+        )}
       </div>
     );
   }
@@ -61,7 +69,7 @@ export function TerminalOutput({ lines }: TerminalOutputProps) {
       >
         <div
           style={{
-            height: `${virtualizer.getTotalSize()}px`,
+            height: `${virtualizer.getTotalSize() + (isRunning ? 24 : 0)}px`,
             width: "100%",
             position: "relative",
           }}
@@ -83,13 +91,31 @@ export function TerminalOutput({ lines }: TerminalOutputProps) {
                   "px-3 py-0.5 whitespace-pre-wrap break-all",
                   line.stream === "stderr"
                     ? "text-status-error"
-                    : "text-[#c0c0c0]",
+                    : "text-[#00ff41]",
                 )}
               >
                 {line.text}
               </div>
             );
           })}
+          {isRunning && (
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "20px",
+                transform: `translateY(${virtualizer.getTotalSize()}px)`,
+              }}
+              className="px-3 py-0.5 flex items-center gap-2"
+            >
+              <span className="inline-block w-3 h-3 border-2 border-[#00ff41] border-t-transparent rounded-full animate-spin" />
+              <span className="text-[#00ff41] text-xs animate-pulse">
+                running...
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

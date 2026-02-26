@@ -9,6 +9,7 @@ import { useScriptStore } from "./stores/useScriptStore";
 import { useCategoryStore } from "./stores/useCategoryStore";
 import { useRunnerStore } from "./stores/useRunnerStore";
 import { useScheduleStore } from "./stores/useScheduleStore";
+import { useSettingsStore } from "./stores/useSettingsStore";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
   const initListeners = useRunnerStore((s) => s.initListeners);
   const runScript = useRunnerStore((s) => s.runScript);
   const syncSchedules = useScheduleStore((s) => s.syncSchedules);
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -27,12 +29,13 @@ export default function App() {
     loadCategories();
     loadScripts();
     syncSchedules();
+    loadSettings();
 
     const cleanupPromise = initListeners();
     return () => {
       cleanupPromise.then((cleanup) => cleanup());
     };
-  }, [loadCategories, loadScripts, syncSchedules, initListeners]);
+  }, [loadCategories, loadScripts, syncSchedules, loadSettings, initListeners]);
 
   const handleAddScript = useCallback(() => {
     setShowAddDialog(true);

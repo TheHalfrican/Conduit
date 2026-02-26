@@ -6,6 +6,8 @@ import type {
   Schedule,
   NewScript,
   UpdateScript,
+  Settings,
+  UpdateSettings,
 } from "../types";
 
 // Script commands
@@ -127,4 +129,19 @@ export async function getSchedules(scriptId: number): Promise<Schedule[]> {
 
 export async function syncSchedules(): Promise<void> {
   return invoke("sync_schedules");
+}
+
+// Settings commands
+export async function getSettings(): Promise<Settings> {
+  return invoke("get_settings");
+}
+
+export async function updateSettings(
+  update: UpdateSettings,
+): Promise<Settings> {
+  return invoke("update_settings", { update });
+}
+
+export async function openInEditor(scriptPath: string): Promise<void> {
+  return invoke("open_in_editor", { scriptPath });
 }
