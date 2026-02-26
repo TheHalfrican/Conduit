@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-hub-bg text-hub-text font-sans antialiased;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  * {
+    @apply border-hub-border;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a3d;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00d4aa;
+}
+
+/* Terminal output scrollbar */
+.terminal-scroll::-webkit-scrollbar-thumb {
+  background: #333355;
+}
+
+.terminal-scroll::-webkit-scrollbar-thumb:hover {
+  background: #00d4aa;
+}
