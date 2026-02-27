@@ -3,21 +3,34 @@ import { listen } from "@tauri-apps/api/event";
 import type { RunRecord } from "../types";
 import * as api from "../lib/tauri";
 
-interface OutputLine {
-  text: string;
-  stream: "stdout" | "stderr";
-  timestamp: number;
+// Module-level subscriber map — output goes directly to xterm.js, not React state
+const outputSubscribers = new Map<number, Set<(data: string) => void>>();
+
+export function subscribeOutput(
+  scriptId: number,
+  callback: (data: string) => void,
+): () => void {
+  let subs = outputSubscribers.get(scriptId);
+  if (!subs) {
+    subs = new Set();
+    outputSubscribers.set(scriptId, subs);
+  }
+  subs.add(callback);
+  return () => {
+    subs!.delete(callback);
+    if (subs!.size === 0) {
+      outputSubscribers.delete(scriptId);
+    }
+  };
 }
 
 interface RunnerState {
   runningScripts: Map<number, number>; // scriptId -> runRecordId
-  outputBuffers: Map<number, OutputLine[]>; // scriptId -> output lines
   histories: Map<number, RunRecord[]>; // scriptId -> run history
 
-  runScript: (scriptId: number) => Promise<void>;
+  runScript: (scriptId: number, cols?: number, rows?: number) => Promise<void>;
   cancelScript: (scriptId: number) => Promise<void>;
   isRunning: (scriptId: number) => boolean;
-  getOutput: (scriptId: number) => OutputLine[];
   loadHistory: (scriptId: number) => Promise<void>;
   clearHistory: (scriptId: number) => Promise<void>;
   initListeners: () => Promise<() => void>;
@@ -25,18 +38,10 @@ interface RunnerState {
 
 export const useRunnerStore = create<RunnerState>()((set, get) => ({
   runningScripts: new Map(),
-  outputBuffers: new Map(),
   histories: new Map(),
 
-  runScript: async (scriptId) => {
-    // Clear previous output
-    set((state) => {
-      const buffers = new Map(state.outputBuffers);
-      buffers.set(scriptId, []);
-      return { outputBuffers: buffers };
-    });
-
-    const runId = await api.runScript(scriptId);
+  runScript: async (scriptId, cols, rows) => {
+    const runId = await api.runScript(scriptId, cols, rows);
     set((state) => {
       const running = new Map(state.runningScripts);
       running.set(scriptId, runId);
@@ -53,10 +58,6 @@ export const useRunnerStore = create<RunnerState>()((set, get) => ({
 
   isRunning: (scriptId) => {
     return get().runningScripts.has(scriptId);
-  },
-
-  getOutput: (scriptId) => {
-    return get().outputBuffers.get(scriptId) ?? [];
   },
 
   loadHistory: async (scriptId) => {
@@ -78,25 +79,17 @@ export const useRunnerStore = create<RunnerState>()((set, get) => ({
   },
 
   initListeners: async () => {
-    // Rust emits camelCase due to #[serde(rename_all = "camelCase")]
+    // Rust emits base64-encoded chunks via script-output
     const unlistenOutput = await listen<{
       scriptId: number;
-      line: string;
-      stream: "stdout" | "stderr";
+      data: string;
     }>("script-output", (event) => {
-      set((state) => {
-        const buffers = new Map(state.outputBuffers);
-        const lines = buffers.get(event.payload.scriptId) ?? [];
-        buffers.set(event.payload.scriptId, [
-          ...lines,
-          {
-            text: event.payload.line,
-            stream: event.payload.stream,
-            timestamp: Date.now(),
-          },
-        ]);
-        return { outputBuffers: buffers };
-      });
+      const subs = outputSubscribers.get(event.payload.scriptId);
+      if (subs) {
+        for (const cb of subs) {
+          cb(event.payload.data);
+        }
+      }
     });
 
     const unlistenFinished = await listen<{

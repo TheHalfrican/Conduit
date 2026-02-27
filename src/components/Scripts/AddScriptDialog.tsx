@@ -21,6 +21,7 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<number>(0);
   const [color, setColor] = useState("#0054e3");
+  const [runAsAdmin, setRunAsAdmin] = useState(false);
 
   useEffect(() => {
     if (isOpen && categories.length > 0 && categoryId === 0) {
@@ -34,6 +35,7 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
     setDescription("");
     setCategoryId(categories[0]?.id ?? 0);
     setColor("#0054e3");
+    setRunAsAdmin(false);
   }
 
   async function handlePickFile() {
@@ -68,6 +70,7 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
         description: description.trim() || null,
         categoryId,
         color,
+        runAsAdmin,
       });
       toast.success(`Script "${name}" added`);
       reset();
@@ -161,6 +164,16 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
             </label>
             <ColorPicker value={color} onChange={setColor} />
           </div>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={runAsAdmin}
+              onChange={(e) => setRunAsAdmin(e.target.checked)}
+              className="win-checkbox"
+            />
+            <span className="text-xs text-hub-text">Run as Administrator</span>
+          </label>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="secondary" onClick={onClose}>

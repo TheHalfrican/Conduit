@@ -10,6 +10,7 @@ pub struct Script {
     pub category_id: i64,
     pub color: String,
     pub is_executable: bool,
+    pub run_as_admin: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -57,6 +58,7 @@ pub struct NewScript {
     pub description: Option<String>,
     pub category_id: i64,
     pub color: String,
+    pub run_as_admin: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -67,6 +69,7 @@ pub struct UpdateScript {
     pub description: Option<String>,
     pub category_id: Option<i64>,
     pub color: Option<String>,
+    pub run_as_admin: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

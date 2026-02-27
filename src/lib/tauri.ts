@@ -61,8 +61,16 @@ export async function reorderCategories(ids: number[]): Promise<void> {
 }
 
 // Runner commands
-export async function runScript(scriptId: number): Promise<number> {
-  return invoke("run_script", { scriptId });
+export async function runScript(
+  scriptId: number,
+  cols?: number,
+  rows?: number,
+): Promise<number> {
+  return invoke("run_script", {
+    scriptId,
+    cols: cols ?? null,
+    rows: rows ?? null,
+  });
 }
 
 export async function cancelScript(scriptId: number): Promise<void> {
@@ -71,6 +79,21 @@ export async function cancelScript(scriptId: number): Promise<void> {
 
 export async function isScriptRunning(scriptId: number): Promise<boolean> {
   return invoke("is_script_running", { scriptId });
+}
+
+export async function writeScriptInput(
+  scriptId: number,
+  data: string,
+): Promise<void> {
+  return invoke("write_script_input", { scriptId, data });
+}
+
+export async function resizeScriptPty(
+  scriptId: number,
+  cols: number,
+  rows: number,
+): Promise<void> {
+  return invoke("resize_script_pty", { scriptId, cols, rows });
 }
 
 // History commands

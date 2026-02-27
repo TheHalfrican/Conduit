@@ -27,6 +27,7 @@ export function EditScriptDialog({
   const [description, setDescription] = useState(script.description ?? "");
   const [categoryId, setCategoryId] = useState(script.categoryId);
   const [color, setColor] = useState(script.color);
+  const [runAsAdmin, setRunAsAdmin] = useState(script.runAsAdmin);
 
   useEffect(() => {
     setName(script.name);
@@ -34,6 +35,7 @@ export function EditScriptDialog({
     setDescription(script.description ?? "");
     setCategoryId(script.categoryId);
     setColor(script.color);
+    setRunAsAdmin(script.runAsAdmin);
   }, [script]);
 
   async function handlePickFile() {
@@ -63,6 +65,7 @@ export function EditScriptDialog({
             : null,
         categoryId: categoryId !== script.categoryId ? categoryId : null,
         color: color !== script.color ? color : null,
+        runAsAdmin: runAsAdmin !== script.runAsAdmin ? runAsAdmin : null,
       });
       toast.success("Script updated");
       onClose();
@@ -156,6 +159,16 @@ export function EditScriptDialog({
             </label>
             <ColorPicker value={color} onChange={setColor} />
           </div>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={runAsAdmin}
+              onChange={(e) => setRunAsAdmin(e.target.checked)}
+              className="win-checkbox"
+            />
+            <span className="text-xs text-hub-text">Run as Administrator</span>
+          </label>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="secondary" onClick={onClose}>

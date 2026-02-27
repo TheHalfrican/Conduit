@@ -29,6 +29,8 @@ pub fn run() {
             commands::runner::run_script,
             commands::runner::cancel_script,
             commands::runner::is_script_running,
+            commands::runner::write_script_input,
+            commands::runner::resize_script_pty,
             commands::history::get_run_history,
             commands::history::get_latest_run,
             commands::history::clear_history,

@@ -119,3 +119,22 @@
 .terminal-scroll::-webkit-scrollbar-thumb:hover {
   background: #555555;
 }
+
+/* xterm.js container overrides */
+.xterm-container .xterm {
+  padding: 4px;
+  height: 100%;
+}
+
+.xterm-container .xterm-viewport::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+.xterm-container .xterm-viewport::-webkit-scrollbar-thumb {
+  background: #444444;
+  box-shadow: inset 1px 1px 0 #666666, inset -1px -1px 0 #222222;
+}
+
+.xterm-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}

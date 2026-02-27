@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(xargs ls:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(pnpm install:*)",
+      "Bash(cargo check:*)",
+      "Bash(npx tsc:*)",
+      "Bash(chmod +x:*)"
     ]
   }
 }

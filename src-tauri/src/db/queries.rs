@@ -33,13 +33,13 @@ pub fn insert_script(conn: &Connection, new: &NewScript) -> Result<Script, rusql
     let is_exec = check_is_executable(&new.path);
 
     conn.execute(
-        "INSERT INTO scripts (name, path, description, category_id, color, is_executable) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![new.name, new.path, new.description, new.category_id, new.color, is_exec],
+        "INSERT INTO scripts (name, path, description, category_id, color, is_executable, run_as_admin) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![new.name, new.path, new.description, new.category_id, new.color, is_exec, new.run_as_admin],
     )?;
     let id = conn.last_insert_rowid();
 
     let mut stmt = conn.prepare(
-        "SELECT id, name, path, description, category_id, color, is_executable, created_at, updated_at FROM scripts WHERE id = ?1",
+        "SELECT id, name, path, description, category_id, color, is_executable, run_as_admin, created_at, updated_at FROM scripts WHERE id = ?1",
     )?;
     stmt.query_row(params![id], |row| {
         Ok(Script {
@@ -50,15 +50,16 @@ pub fn insert_script(conn: &Connection, new: &NewScript) -> Result<Script, rusql
             category_id: row.get(4)?,
             color: row.get(5)?,
             is_executable: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
+            run_as_admin: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
         })
     })
 }
 
 pub fn get_all_scripts(conn: &Connection) -> Result<Vec<Script>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, path, description, category_id, color, is_executable, created_at, updated_at FROM scripts ORDER BY name",
+        "SELECT id, name, path, description, category_id, color, is_executable, run_as_admin, created_at, updated_at FROM scripts ORDER BY name",
     )?;
     let rows = stmt.query_map([], |row| {
         Ok(Script {
@@ -69,8 +70,9 @@ pub fn get_all_scripts(conn: &Connection) -> Result<Vec<Script>, rusqlite::Error
             category_id: row.get(4)?,
             color: row.get(5)?,
             is_executable: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
+            run_as_admin: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
         })
     })?;
     rows.collect()
@@ -78,7 +80,7 @@ pub fn get_all_scripts(conn: &Connection) -> Result<Vec<Script>, rusqlite::Error
 
 pub fn get_scripts_by_category(conn: &Connection, category_id: i64) -> Result<Vec<Script>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, path, description, category_id, color, is_executable, created_at, updated_at FROM scripts WHERE category_id = ?1 ORDER BY name",
+        "SELECT id, name, path, description, category_id, color, is_executable, run_as_admin, created_at, updated_at FROM scripts WHERE category_id = ?1 ORDER BY name",
     )?;
     let rows = stmt.query_map(params![category_id], |row| {
         Ok(Script {
@@ -89,8 +91,9 @@ pub fn get_scripts_by_category(conn: &Connection, category_id: i64) -> Result<Ve
             category_id: row.get(4)?,
             color: row.get(5)?,
             is_executable: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
+            run_as_admin: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
         })
     })?;
     rows.collect()
@@ -113,9 +116,12 @@ pub fn update_script(conn: &Connection, id: i64, update: &UpdateScript) -> Resul
     if let Some(ref color) = update.color {
         conn.execute("UPDATE scripts SET color = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2", params![color, id])?;
     }
+    if let Some(run_as_admin) = update.run_as_admin {
+        conn.execute("UPDATE scripts SET run_as_admin = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2", params![run_as_admin, id])?;
+    }
 
     let mut stmt = conn.prepare(
-        "SELECT id, name, path, description, category_id, color, is_executable, created_at, updated_at FROM scripts WHERE id = ?1",
+        "SELECT id, name, path, description, category_id, color, is_executable, run_as_admin, created_at, updated_at FROM scripts WHERE id = ?1",
     )?;
     stmt.query_row(params![id], |row| {
         Ok(Script {
@@ -126,8 +132,9 @@ pub fn update_script(conn: &Connection, id: i64, update: &UpdateScript) -> Resul
             category_id: row.get(4)?,
             color: row.get(5)?,
             is_executable: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
+            run_as_admin: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
         })
     })
 }
@@ -403,7 +410,7 @@ pub fn upsert_settings(conn: &Connection, update: &UpdateSettings) -> Result<Set
 
 pub fn get_script_by_id(conn: &Connection, id: i64) -> Result<Script, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, path, description, category_id, color, is_executable, created_at, updated_at FROM scripts WHERE id = ?1",
+        "SELECT id, name, path, description, category_id, color, is_executable, run_as_admin, created_at, updated_at FROM scripts WHERE id = ?1",
     )?;
     stmt.query_row(params![id], |row| {
         Ok(Script {
@@ -414,8 +421,9 @@ pub fn get_script_by_id(conn: &Connection, id: i64) -> Result<Script, rusqlite::
             category_id: row.get(4)?,
             color: row.get(5)?,
             is_executable: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
+            run_as_admin: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
         })
     })
 }

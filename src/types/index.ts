@@ -6,6 +6,7 @@ export interface Script {
   categoryId: number;
   color: string;
   isExecutable: boolean;
+  runAsAdmin: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,6 +46,7 @@ export interface NewScript {
   description: string | null;
   categoryId: number;
   color: string;
+  runAsAdmin: boolean;
 }
 
 export interface UpdateScript {
@@ -53,6 +55,7 @@ export interface UpdateScript {
   description: string | null;
   categoryId: number | null;
   color: string | null;
+  runAsAdmin: boolean | null;
 }
 
 export interface NewSchedule {

@@ -18,6 +18,7 @@ pub fn initialize(conn: &Connection) -> Result<(), rusqlite::Error> {
             category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE SET DEFAULT DEFAULT 1,
             color TEXT NOT NULL DEFAULT '#00d4aa',
             is_executable BOOLEAN NOT NULL DEFAULT 0,
+            run_as_admin BOOLEAN NOT NULL DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
@@ -59,5 +60,9 @@ pub fn initialize(conn: &Connection) -> Result<(), rusqlite::Error> {
         INSERT OR IGNORE INTO categories (id, name, color, sort_order) VALUES (1, 'General', '#00d4aa', 0);
         ",
     )?;
+
+    // Migration: add run_as_admin column for existing databases
+    let _ = conn.execute_batch("ALTER TABLE scripts ADD COLUMN run_as_admin BOOLEAN NOT NULL DEFAULT 0");
+
     Ok(())
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Script } from "../../types";
 import { useScriptStore } from "../../stores/useScriptStore";
 import { useCategoryStore } from "../../stores/useCategoryStore";
@@ -8,7 +8,7 @@ import { useScriptRunner } from "../../hooks/useScriptRunner";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "../UI/Button";
 import { ConfirmDialog } from "../UI/ConfirmDialog";
-import { TerminalOutput } from "./TerminalOutput";
+import { XTerminal } from "./XTerminal";
 import { RunHistoryItem } from "./RunHistoryItem";
 import { SchedulePanel } from "../Schedule/SchedulePanel";
 import { EditScriptDialog } from "../Scripts/EditScriptDialog";
@@ -26,11 +26,20 @@ export function ScriptDetailView({ script }: ScriptDetailViewProps) {
   const histories = useRunnerStore((s) => s.histories);
   const openInEditor = useSettingsStore((s) => s.openInEditor);
   const editorPath = useSettingsStore((s) => s.settings?.editorPath);
-  const { run, cancel, isRunning, output } = useScriptRunner(script.id);
+  const { run, cancel, isRunning, writeInput, resize, subscribe } =
+    useScriptRunner(script.id);
   const toast = useToast();
 
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const termDimsRef = useRef<{ cols: number; rows: number } | null>(null);
+
+  const handleDimensionsReady = useCallback(
+    (cols: number, rows: number) => {
+      termDimsRef.current = { cols, rows };
+    },
+    [],
+  );
 
   const category = categories.find((c) => c.id === script.categoryId);
   const history = histories.get(script.id) ?? [];
@@ -41,7 +50,8 @@ export function ScriptDetailView({ script }: ScriptDetailViewProps) {
 
   async function handleRun() {
     try {
-      await run();
+      const dims = termDimsRef.current;
+      await run(dims?.cols, dims?.rows);
     } catch {
       toast.error("Failed to run script");
     }
@@ -180,7 +190,13 @@ export function ScriptDetailView({ script }: ScriptDetailViewProps) {
         {/* Terminal Output */}
         <div>
           <h3 className="text-sm font-medium text-hub-text mb-2">Output</h3>
-          <TerminalOutput lines={output} isRunning={isRunning} />
+          <XTerminal
+            isRunning={isRunning}
+            writeInput={writeInput}
+            resize={resize}
+            subscribe={subscribe}
+            onDimensionsReady={handleDimensionsReady}
+          />
         </div>
 
         {/* Schedule Panel */}

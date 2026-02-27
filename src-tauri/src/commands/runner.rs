@@ -1,17 +1,21 @@
 use crate::db::queries;
 use crate::db::Database;
+use base64::Engine;
+use portable_pty::{CommandBuilder, MasterPty, NativePtySystem, PtySize, PtySystem};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
+use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
-use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::Command;
 
-#[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
+pub(crate) struct PtyProcess {
+    writer: Box<dyn Write + Send>,
+    master: Box<dyn MasterPty + Send>,
+    child_pid: u32,
+}
 
 pub struct RunnerState {
-    pub active_processes: Arc<Mutex<HashMap<i64, u32>>>,
+    pub active_processes: Arc<Mutex<HashMap<i64, PtyProcess>>>,
     pub cancelled_scripts: Arc<Mutex<HashSet<i64>>>,
 }
 
@@ -28,8 +32,7 @@ impl RunnerState {
 #[serde(rename_all = "camelCase")]
 struct ScriptOutputEvent {
     script_id: i64,
-    line: String,
-    stream: String,
+    data: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -40,7 +43,7 @@ struct ScriptFinishedEvent {
     record_id: i64,
 }
 
-fn build_script_command(script_path: &str) -> Command {
+fn build_script_command(script_path: &str, run_as_admin: bool) -> CommandBuilder {
     #[cfg(unix)]
     {
         let path_env = if cfg!(target_os = "macos") {
@@ -48,37 +51,52 @@ fn build_script_command(script_path: &str) -> Command {
         } else {
             "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
         };
-        let mut cmd = Command::new("/bin/bash");
-        cmd.arg(script_path)
-            .env("PATH", path_env)
-            .process_group(0);
+        let mut cmd = if run_as_admin {
+            let mut c = CommandBuilder::new("sudo");
+            c.args(["/bin/bash", script_path]);
+            c
+        } else {
+            let mut c = CommandBuilder::new("/bin/bash");
+            c.arg(script_path);
+            c
+        };
+        cmd.env("PATH", path_env);
+        cmd.env("TERM", "xterm-256color");
         cmd
     }
     #[cfg(target_os = "windows")]
     {
-        let ext = std::path::Path::new(script_path)
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-        let mut cmd = match ext.as_str() {
-            "ps1" => {
-                let mut c = Command::new("powershell.exe");
-                c.args(["-ExecutionPolicy", "Bypass", "-File", script_path]);
-                c
-            }
-            "cmd" | "bat" => {
-                let mut c = Command::new("cmd.exe");
-                c.args(["/C", script_path]);
-                c
-            }
-            _ => {
-                let c = Command::new(script_path);
-                c
+        let mut cmd = if run_as_admin {
+            let mut c = CommandBuilder::new("powershell.exe");
+            c.args([
+                "-Command",
+                &format!(
+                    "Start-Process -FilePath '{}' -Verb RunAs -Wait",
+                    script_path.replace("'", "''")
+                ),
+            ]);
+            c
+        } else {
+            let ext = std::path::Path::new(script_path)
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            match ext.as_str() {
+                "ps1" => {
+                    let mut c = CommandBuilder::new("powershell.exe");
+                    c.args(["-ExecutionPolicy", "Bypass", "-File", script_path]);
+                    c
+                }
+                "cmd" | "bat" => {
+                    let mut c = CommandBuilder::new("cmd.exe");
+                    c.args(["/C", script_path]);
+                    c
+                }
+                _ => CommandBuilder::new(script_path),
             }
         };
-        // CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
-        cmd.creation_flags(0x00000200 | 0x08000000);
+        cmd.env("TERM", "xterm-256color");
         cmd
     }
 }
@@ -89,12 +107,17 @@ pub async fn run_script(
     db: State<'_, Database>,
     runner: State<'_, RunnerState>,
     script_id: i64,
+    cols: Option<u16>,
+    rows: Option<u16>,
 ) -> Result<i64, String> {
-    // Get script path from DB
-    let script_path = {
+    let pty_cols = cols.unwrap_or(80);
+    let pty_rows = rows.unwrap_or(24);
+
+    // Get script from DB
+    let (script_path, run_as_admin) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let script = queries::get_script_by_id(&conn, script_id).map_err(|e| e.to_string())?;
-        script.path
+        (script.path, script.run_as_admin)
     };
 
     // Create run record
@@ -105,107 +128,99 @@ pub async fn run_script(
     };
     let record_id = record.id;
 
-    // Spawn the script process in its own process group so we can kill the whole tree
-    let mut cmd = build_script_command(&script_path);
-    let mut child = cmd
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
+    // Open PTY pair
+    let pty_system = NativePtySystem::default();
+    let pair = pty_system
+        .openpty(PtySize {
+            rows: pty_rows,
+            cols: pty_cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        })
         .map_err(|e| e.to_string())?;
 
-    // Store PID in active processes
-    let pid = child.id().unwrap_or(0);
+    // Spawn child on the slave
+    let cmd = build_script_command(&script_path, run_as_admin);
+    let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
+    let child_pid = child.process_id().unwrap_or(0);
+
+    // Drop slave — the child owns its end now
+    drop(pair.slave);
+
+    // Get a reader from the master and a writer for stdin
+    let reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
+    let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
+
+    // Store PtyProcess in active_processes
     {
         let mut procs = runner.active_processes.lock().map_err(|e| e.to_string())?;
-        procs.insert(script_id, pid);
+        procs.insert(
+            script_id,
+            PtyProcess {
+                writer,
+                master: pair.master,
+                child_pid,
+            },
+        );
     }
 
-    // Take stdout and stderr handles
-    let stdout = child.stdout.take();
-    let stderr = child.stderr.take();
-
-    // Clone Arc references for the spawned task
     let active_procs = Arc::clone(&runner.active_processes);
     let cancelled = Arc::clone(&runner.cancelled_scripts);
     let app_handle = app.clone();
 
-    // Spawn async task to read output and wait for completion
-    tokio::spawn(async move {
-        let output = Arc::new(Mutex::new(String::new()));
-        let max_output_bytes = 50 * 1024; // ~50KB
+    // Spawn a std::thread for blocking PTY reads
+    std::thread::spawn(move || {
+        let mut reader = reader;
+        let mut child = child;
+        let mut buf = [0u8; 4096];
+        let mut output_acc = String::new();
+        let max_output_bytes: usize = 50 * 1024;
+        let b64 = base64::engine::general_purpose::STANDARD;
 
-        // Read stdout in a separate task
-        let stdout_handle = if let Some(stdout) = stdout {
-            let app_ref = app_handle.clone();
-            let output_ref = Arc::clone(&output);
-            Some(tokio::spawn(async move {
-                let reader = BufReader::new(stdout);
-                let mut lines = reader.lines();
-                while let Ok(Some(line)) = lines.next_line().await {
-                    let _ = app_ref.emit(
+        loop {
+            match reader.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    let chunk = &buf[..n];
+
+                    // Emit base64-encoded chunk
+                    let encoded = b64.encode(chunk);
+                    let _ = app_handle.emit(
                         "script-output",
                         ScriptOutputEvent {
                             script_id,
-                            line: line.clone(),
-                            stream: "stdout".to_string(),
+                            data: encoded,
                         },
                     );
-                    if let Ok(mut out) = output_ref.lock() {
-                        if out.len() < max_output_bytes {
-                            if !out.is_empty() {
-                                out.push('\n');
+
+                    // Accumulate ANSI-stripped text for DB
+                    if output_acc.len() < max_output_bytes {
+                        let stripped = strip_ansi_escapes::strip(chunk);
+                        if let Ok(text) = String::from_utf8(stripped) {
+                            let remaining = max_output_bytes - output_acc.len();
+                            if text.len() <= remaining {
+                                output_acc.push_str(&text);
+                            } else {
+                                output_acc.push_str(&text[..remaining]);
                             }
-                            out.push_str(&line);
                         }
                     }
                 }
-            }))
-        } else {
-            None
-        };
+                Err(_) => break,
+            }
+        }
 
-        // Read stderr in a separate task
-        let stderr_handle = if let Some(stderr) = stderr {
-            let app_ref = app_handle.clone();
-            let output_ref = Arc::clone(&output);
-            Some(tokio::spawn(async move {
-                let reader = BufReader::new(stderr);
-                let mut lines = reader.lines();
-                while let Ok(Some(line)) = lines.next_line().await {
-                    let _ = app_ref.emit(
-                        "script-output",
-                        ScriptOutputEvent {
-                            script_id,
-                            line: line.clone(),
-                            stream: "stderr".to_string(),
-                        },
-                    );
-                    if let Ok(mut out) = output_ref.lock() {
-                        if out.len() < max_output_bytes {
-                            if !out.is_empty() {
-                                out.push('\n');
-                            }
-                            out.push_str(&format!("[stderr] {}", line));
-                        }
-                    }
+        // Wait for child exit
+        let exit_code = match child.wait() {
+            Ok(status) => {
+                if status.success() {
+                    0
+                } else {
+                    // portable-pty ExitStatus doesn't expose the raw code on all platforms,
+                    // but we can check success. Use 1 for generic failure.
+                    1
                 }
-            }))
-        } else {
-            None
-        };
-
-        // Wait for both readers to finish
-        if let Some(h) = stdout_handle {
-            let _ = h.await;
-        }
-        if let Some(h) = stderr_handle {
-            let _ = h.await;
-        }
-
-        // Wait for process to finish
-        let wait_result = child.wait().await;
-        let exit_code = match &wait_result {
-            Ok(status) => status.code().unwrap_or(-1),
+            }
             Err(_) => -1,
         };
 
@@ -224,8 +239,7 @@ pub async fn run_script(
         };
         let finished_at = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
-        // Update run record via AppHandle state
-        let full_output = output.lock().map(|o| o.clone()).unwrap_or_default();
+        // Update run record
         let db_state = app_handle.state::<Database>();
         if let Ok(conn) = db_state.conn.lock() {
             let _ = queries::update_run_record(
@@ -233,7 +247,7 @@ pub async fn run_script(
                 record_id,
                 &finished_at,
                 Some(exit_code),
-                Some(&full_output),
+                Some(&output_acc),
                 status,
             );
         }
@@ -258,18 +272,60 @@ pub async fn run_script(
 }
 
 #[tauri::command]
+pub fn write_script_input(
+    runner: State<'_, RunnerState>,
+    script_id: i64,
+    data: String,
+) -> Result<(), String> {
+    let mut procs = runner.active_processes.lock().map_err(|e| e.to_string())?;
+    if let Some(pty) = procs.get_mut(&script_id) {
+        pty.writer
+            .write_all(data.as_bytes())
+            .map_err(|e| e.to_string())?;
+        pty.writer.flush().map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("Script is not running".to_string())
+    }
+}
+
+#[tauri::command]
+pub fn resize_script_pty(
+    runner: State<'_, RunnerState>,
+    script_id: i64,
+    cols: u16,
+    rows: u16,
+) -> Result<(), String> {
+    let procs = runner.active_processes.lock().map_err(|e| e.to_string())?;
+    if let Some(pty) = procs.get(&script_id) {
+        pty.master
+            .resize(PtySize {
+                rows,
+                cols,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("Script is not running".to_string())
+    }
+}
+
+#[tauri::command]
 pub fn cancel_script(runner: State<'_, RunnerState>, script_id: i64) -> Result<(), String> {
     let procs = runner.active_processes.lock().map_err(|e| e.to_string())?;
-    if let Some(&pid) = procs.get(&script_id) {
-        // Mark as cancelled before killing so the async task can detect it
+    if let Some(pty) = procs.get(&script_id) {
+        // Mark as cancelled before killing so the reader thread can detect it
         if let Ok(mut set) = runner.cancelled_scripts.lock() {
             set.insert(script_id);
         }
 
+        let pid = pty.child_pid;
+
         #[cfg(unix)]
         unsafe {
-            // Kill the entire process group (negative PID) so child processes
-            // like rsync and piped commands are also terminated
+            // Kill the entire process group (negative PID) so child processes are also terminated
             libc::kill(-(pid as i32), libc::SIGTERM);
         }
 
