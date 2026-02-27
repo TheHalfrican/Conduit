@@ -77,8 +77,8 @@ fn build_script_command(script_path: &str) -> Command {
                 c
             }
         };
-        // CREATE_NEW_PROCESS_GROUP
-        cmd.creation_flags(0x00000200);
+        // CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
+        cmd.creation_flags(0x00000200 | 0x08000000);
         cmd
     }
 }
