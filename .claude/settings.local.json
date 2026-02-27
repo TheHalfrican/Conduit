@@ -7,7 +7,9 @@
       "Bash(cargo check:*)",
       "Bash(npx tsc:*)",
       "Bash(chmod +x:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(git fetch:*)",
+      "Bash(git:*)"
     ]
   }
 }

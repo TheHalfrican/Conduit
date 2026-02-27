@@ -21,11 +21,13 @@ src-tauri/target/
 # macOS
 .DS_Store
 
-# Tauri generated icons (keep source only)
+# Tauri generated files
 src-tauri/icons/
+src-tauri/gen/schemas/
 
 # App data
 .conduit/
 
 # Claude
 /CLAUDE.md
+.claude/
