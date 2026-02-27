@@ -181,6 +181,185 @@ mod platform {
 }
 
 // ──────────────────────────────────────────────
+// Linux: systemd user timers
+// ──────────────────────────────────────────────
+
+#[cfg(target_os = "linux")]
+mod platform {
+    use super::*;
+
+    fn get_systemd_user_dir() -> PathBuf {
+        let mut path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        path.push(".config");
+        path.push("systemd");
+        path.push("user");
+        path
+    }
+
+    /// Convert label like `com.conduit.script.42.a1b2c3d4` to unit name `conduit-script-42-a1b2c3d4`
+    fn label_to_unit_name(label: &str) -> String {
+        label
+            .strip_prefix("com.")
+            .unwrap_or(label)
+            .replace('.', "-")
+    }
+
+    fn get_service_path(label: &str) -> PathBuf {
+        let unit = label_to_unit_name(label);
+        get_systemd_user_dir().join(format!("{}.service", unit))
+    }
+
+    fn get_timer_path(label: &str) -> PathBuf {
+        let unit = label_to_unit_name(label);
+        get_systemd_user_dir().join(format!("{}.timer", unit))
+    }
+
+    fn build_service_content(label: &str, script_path: &str) -> String {
+        let logs_dir = get_logs_dir();
+        let unit = label_to_unit_name(label);
+        format!(
+            "[Unit]\n\
+             Description=Conduit scheduled script: {unit}\n\
+             \n\
+             [Service]\n\
+             Type=oneshot\n\
+             ExecStart=/bin/bash {script_path}\n\
+             Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin\n\
+             StandardOutput=append:{stdout}\n\
+             StandardError=append:{stderr}\n",
+            unit = unit,
+            script_path = script_path,
+            stdout = logs_dir.join(format!("{}.stdout.log", unit)).to_string_lossy(),
+            stderr = logs_dir.join(format!("{}.stderr.log", unit)).to_string_lossy(),
+        )
+    }
+
+    fn build_timer_content(label: &str, schedule: &NewSchedule) -> String {
+        let unit = label_to_unit_name(label);
+        let mut timer = format!(
+            "[Unit]\n\
+             Description=Timer for Conduit scheduled script: {unit}\n\
+             \n\
+             [Timer]\n",
+            unit = unit,
+        );
+
+        match schedule.schedule_type.as_str() {
+            "daily" => {
+                if let Some(ref time_str) = schedule.time {
+                    timer.push_str(&format!("OnCalendar=*-*-* {}:00\n", time_str));
+                    timer.push_str("Persistent=true\n");
+                }
+            }
+            "weekly" => {
+                if let (Some(ref time_str), Some(weekday)) = (&schedule.time, schedule.weekday) {
+                    let day = match weekday {
+                        0 => "Sun",
+                        1 => "Mon",
+                        2 => "Tue",
+                        3 => "Wed",
+                        4 => "Thu",
+                        5 => "Fri",
+                        6 => "Sat",
+                        _ => "Mon",
+                    };
+                    timer.push_str(&format!("OnCalendar={} *-*-* {}:00\n", day, time_str));
+                    timer.push_str("Persistent=true\n");
+                }
+            }
+            "interval" => {
+                if let Some(seconds) = schedule.interval_seconds {
+                    timer.push_str("OnBootSec=60\n");
+                    timer.push_str(&format!("OnUnitActiveSec={}s\n", seconds));
+                    timer.push_str("AccuracySec=1\n");
+                }
+            }
+            _ => {}
+        }
+
+        timer.push_str("\n[Install]\nWantedBy=timers.target\n");
+        timer
+    }
+
+    fn systemctl(args: &[&str]) -> Result<(), String> {
+        let output = std::process::Command::new("systemctl")
+            .arg("--user")
+            .args(args)
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if !stderr.trim().is_empty() {
+                return Err(stderr.to_string());
+            }
+        }
+        Ok(())
+    }
+
+    fn write_unit_files(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+        let systemd_dir = get_systemd_user_dir();
+        std::fs::create_dir_all(&systemd_dir).map_err(|e| e.to_string())?;
+
+        let service_content = build_service_content(label, script_path);
+        let timer_content = build_timer_content(label, schedule);
+
+        std::fs::write(get_service_path(label), service_content).map_err(|e| e.to_string())?;
+        std::fs::write(get_timer_path(label), timer_content).map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+
+    pub fn create_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+        write_unit_files(label, script_path, schedule)?;
+
+        let timer_unit = format!("{}.timer", label_to_unit_name(label));
+        systemctl(&["daemon-reload"])?;
+        systemctl(&["enable", "--now", &timer_unit])?;
+
+        Ok(())
+    }
+
+    pub fn delete_scheduled_task(label: &str) -> Result<(), String> {
+        let timer_unit = format!("{}.timer", label_to_unit_name(label));
+
+        // Disable and stop (ignore errors if already stopped)
+        let _ = systemctl(&["disable", "--now", &timer_unit]);
+
+        // Remove unit files
+        let _ = std::fs::remove_file(get_service_path(label));
+        let _ = std::fs::remove_file(get_timer_path(label));
+
+        let _ = systemctl(&["daemon-reload"]);
+
+        Ok(())
+    }
+
+    pub fn enable_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+        // Re-write files in case they were cleaned up
+        if !get_timer_path(label).exists() {
+            write_unit_files(label, script_path, schedule)?;
+        }
+
+        let timer_unit = format!("{}.timer", label_to_unit_name(label));
+        systemctl(&["daemon-reload"])?;
+        systemctl(&["enable", "--now", &timer_unit])?;
+
+        Ok(())
+    }
+
+    pub fn disable_scheduled_task(label: &str) -> Result<(), String> {
+        let timer_unit = format!("{}.timer", label_to_unit_name(label));
+        systemctl(&["disable", "--now", &timer_unit])?;
+        Ok(())
+    }
+
+    pub fn task_exists(label: &str) -> bool {
+        get_timer_path(label).exists()
+    }
+}
+
+// ──────────────────────────────────────────────
 // Windows: Task Scheduler (schtasks) helpers
 // ──────────────────────────────────────────────
 

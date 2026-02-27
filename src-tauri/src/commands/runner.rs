@@ -41,14 +41,16 @@ struct ScriptFinishedEvent {
 }
 
 fn build_script_command(script_path: &str) -> Command {
-    #[cfg(target_os = "macos")]
+    #[cfg(unix)]
     {
+        let path_env = if cfg!(target_os = "macos") {
+            "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        } else {
+            "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
+        };
         let mut cmd = Command::new("/bin/bash");
         cmd.arg(script_path)
-            .env(
-                "PATH",
-                "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
-            )
+            .env("PATH", path_env)
             .process_group(0);
         cmd
     }
@@ -77,12 +79,6 @@ fn build_script_command(script_path: &str) -> Command {
         };
         // CREATE_NEW_PROCESS_GROUP
         cmd.creation_flags(0x00000200);
-        cmd
-    }
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    {
-        let mut cmd = Command::new("/bin/bash");
-        cmd.arg(script_path).process_group(0);
         cmd
     }
 }
@@ -270,7 +266,7 @@ pub fn cancel_script(runner: State<'_, RunnerState>, script_id: i64) -> Result<(
             set.insert(script_id);
         }
 
-        #[cfg(target_os = "macos")]
+        #[cfg(unix)]
         unsafe {
             // Kill the entire process group (negative PID) so child processes
             // like rsync and piped commands are also terminated
@@ -282,11 +278,6 @@ pub fn cancel_script(runner: State<'_, RunnerState>, script_id: i64) -> Result<(
             let _ = std::process::Command::new("taskkill")
                 .args(["/T", "/F", "/PID", &pid.to_string()])
                 .output();
-        }
-
-        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-        unsafe {
-            libc::kill(-(pid as i32), libc::SIGTERM);
         }
 
         Ok(())

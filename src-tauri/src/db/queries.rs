@@ -5,7 +5,7 @@ use crate::models::*;
 // --- Script queries ---
 
 fn check_is_executable(path: &str) -> bool {
-    #[cfg(target_os = "macos")]
+    #[cfg(unix)]
     {
         std::fs::metadata(path)
             .map(|m| {
@@ -25,15 +25,6 @@ fn check_is_executable(path: &str) -> bool {
             "bat" | "cmd" | "ps1" | "exe" => true,
             _ => std::fs::metadata(path).is_ok(),
         }
-    }
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    {
-        std::fs::metadata(path)
-            .map(|m| {
-                use std::os::unix::fs::PermissionsExt;
-                m.permissions().mode() & 0o111 != 0
-            })
-            .unwrap_or(false)
     }
 }
 

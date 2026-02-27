@@ -9,7 +9,7 @@ Built with **Tauri v2**, **React 19**, **TypeScript**, and **Rust**.
 - **Script Management** — Add, edit, and organize scripts into color-coded categories
 - **Live Terminal Output** — Run scripts and stream stdout/stderr in real time with virtualized scrolling
 - **Run History** — Track exit codes, duration, and output for every execution
-- **Scheduling** — Schedule scripts to run daily, weekly, or at fixed intervals via launchd (macOS) or Task Scheduler (Windows)
+- **Scheduling** — Schedule scripts to run daily, weekly, or at fixed intervals via launchd (macOS), Task Scheduler (Windows), or systemd timers (Linux)
 - **Search & Filter** — Quickly find scripts by name, description, or category
 - **Keyboard Shortcuts** — `Cmd/Ctrl+N` (add), `Cmd/Ctrl+R` (run), `Cmd/Ctrl+F` (search), `Esc` (back)
 
@@ -22,12 +22,12 @@ Built with **Tauri v2**, **React 19**, **TypeScript**, and **Rust**.
 | Styling | Tailwind CSS v3 |
 | State | Zustand v5 |
 | Backend | Rust, rusqlite (SQLite) |
-| Scheduling | launchd (macOS) / Task Scheduler (Windows) |
+| Scheduling | launchd (macOS) / Task Scheduler (Windows) / systemd timers (Linux) |
 | Package Manager | pnpm |
 
 ## Prerequisites
 
-- **macOS** or **Windows 10+**
+- **macOS**, **Windows 10+**, or **Linux** (systemd-based distro)
 - [Node.js](https://nodejs.org/) 18+
 - [pnpm](https://pnpm.io/)
 - [Rust](https://rustup.rs/)

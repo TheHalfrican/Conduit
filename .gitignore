@@ -26,3 +26,6 @@ src-tauri/icons/
 
 # App data
 .conduit/
+
+# Claude
+/CLAUDE.md
