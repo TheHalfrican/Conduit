@@ -69,7 +69,7 @@ function ScriptCard({ script }: ScriptCardProps) {
     <div
       onClick={() => selectScript(script)}
       onContextMenu={ctx.handleContextMenu}
-      className="bg-hub-surface shadow-win-outset rounded-none p-3 hover:bg-[#d4d0c8] active:shadow-win-inset cursor-pointer group relative"
+      className="bg-hub-surface shadow-win-outset rounded-none p-3 hover:bg-[var(--card-hover-bg)] active:shadow-win-inset cursor-pointer group relative"
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 min-w-0">

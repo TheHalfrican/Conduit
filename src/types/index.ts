@@ -66,11 +66,15 @@ export interface NewSchedule {
   intervalSeconds: number | null;
 }
 
+export type Theme = "win98" | "macos8" | "xp" | "vista";
+
 export interface Settings {
   id: number;
   editorPath: string;
+  theme: Theme;
 }
 
 export interface UpdateSettings {
   editorPath: string | null;
+  theme: Theme | null;
 }

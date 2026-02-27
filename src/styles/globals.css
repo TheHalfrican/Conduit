@@ -1,10 +1,13 @@
+@import "./themes.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-hub-bg text-hub-text font-sans;
+    @apply bg-hub-bg text-hub-text;
+    font-family: var(--font-sans);
     font-size: 11px;
     overflow: hidden;
     user-select: none;
@@ -15,15 +18,23 @@
   * {
     @apply border-hub-border;
   }
+
+  /* Global border-radius override from theme */
+  button,
+  input,
+  select,
+  textarea {
+    border-radius: var(--theme-radius);
+  }
 }
 
 @layer components {
   .win-titlebar {
-    background: linear-gradient(180deg, #0a246a 0%, #3a6ea5 100%);
-    color: #ffffff;
+    background: var(--titlebar-bg);
+    color: var(--titlebar-text);
     font-weight: 700;
     font-size: 12px;
-    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+    text-shadow: var(--titlebar-text-shadow);
     padding: 2px 6px;
   }
 
@@ -36,10 +47,12 @@
   }
 
   .win-btn {
-    @apply bg-win-button-face shadow-win-button rounded-none px-4 py-1 text-hub-text font-sans;
+    @apply bg-win-button-face shadow-win-button px-4 py-1 text-hub-text;
+    font-family: var(--font-sans);
     font-size: 11px;
     min-width: 75px;
     text-align: center;
+    border-radius: var(--theme-radius);
   }
 
   .win-btn:active {
@@ -58,6 +71,7 @@
     position: relative;
     cursor: pointer;
     flex-shrink: 0;
+    border-radius: var(--theme-radius);
   }
 
   .win-checkbox:checked::after {
@@ -72,38 +86,42 @@
   }
 }
 
-/* Win98 scrollbars */
+/* Scrollbars */
 ::-webkit-scrollbar {
   width: 16px;
   height: 16px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #c0c0c0;
-  background-image: url("data:image/svg+xml,%3Csvg width='2' height='2' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23c0c0c0'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23c0c0c0'/%3E%3Crect x='0' y='1' width='1' height='1' fill='%23ffffff'/%3E%3Crect x='1' y='0' width='1' height='1' fill='%23ffffff'/%3E%3C/svg%3E");
-  background-size: 2px 2px;
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4d0c8;
-  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #404040,
-    inset 2px 2px 0 #d4d0c8, inset -2px -2px 0 #808080;
+  background: var(--scrollbar-thumb);
+  box-shadow: var(--scrollbar-thumb-shadow);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #d4d0c8;
+  background: var(--scrollbar-thumb);
 }
 
 ::-webkit-scrollbar-button:single-button {
-  background: #d4d0c8;
-  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #404040;
+  background: var(--scrollbar-button);
+  box-shadow: var(--scrollbar-button-shadow);
   display: block;
   height: 16px;
   width: 16px;
 }
 
 ::-webkit-scrollbar-corner {
-  background: #c0c0c0;
+  background: var(--scrollbar-corner);
+}
+
+/* Win98 scrollbar track dither pattern - only on default theme */
+[data-theme="win98"] ::-webkit-scrollbar-track,
+:root:not([data-theme]) ::-webkit-scrollbar-track {
+  background-image: url("data:image/svg+xml,%3Csvg width='2' height='2' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23c0c0c0'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23c0c0c0'/%3E%3Crect x='0' y='1' width='1' height='1' fill='%23ffffff'/%3E%3Crect x='1' y='0' width='1' height='1' fill='%23ffffff'/%3E%3C/svg%3E");
+  background-size: 2px 2px;
 }
 
 /* Terminal output scrollbar - keep dark */
@@ -137,4 +155,109 @@
 
 .xterm-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
   background: #555555;
+}
+
+/* ===== Desktop backgrounds ===== */
+
+/* Win98: classic teal desktop */
+.theme-desktop,
+[data-theme="win98"] .theme-desktop {
+  background: #008080;
+}
+
+/* Mac OS 8: repeating "Mac OS" tile */
+[data-theme="macos8"] .theme-desktop {
+  background: #6699AA url("../assets/wallpapers/OS8_Default.png") repeat;
+}
+
+/* XP: "Bliss" wallpaper */
+[data-theme="xp"] .theme-desktop {
+  background: #245edb url("../assets/wallpapers/XP.jpg") center / cover no-repeat fixed;
+}
+
+/* Vista: Aurora wallpaper */
+[data-theme="vista"] .theme-desktop {
+  background: #0a1628 url("../assets/wallpapers/Vista.png") center / cover no-repeat fixed;
+}
+
+/* ===== Frosted glass sidebar (all themes except Win98) ===== */
+
+[data-theme="macos8"] aside {
+  background-color: rgba(232, 232, 232, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+[data-theme="xp"] aside {
+  background-color: rgba(236, 233, 216, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+[data-theme="vista"] aside {
+  background-color: rgba(245, 245, 245, 0.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ===== Frosted glass content panel + cards (all themes except Win98) ===== */
+
+[data-theme="macos8"] .shadow-win-inset.bg-white,
+[data-theme="xp"] .shadow-win-inset.bg-white,
+[data-theme="vista"] .shadow-win-inset.bg-white {
+  background-color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+[data-theme="macos8"] .bg-hub-surface.shadow-win-outset {
+  background-color: rgba(232, 232, 232, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-theme="xp"] .bg-hub-surface.shadow-win-outset {
+  background-color: rgba(236, 233, 216, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-theme="vista"] .bg-hub-surface.shadow-win-outset {
+  background-color: rgba(245, 245, 245, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* ===== Theme-specific UI overrides ===== */
+
+/* Mac OS 8: pinstripe texture on chrome surfaces */
+[data-theme="macos8"] .bg-hub-surface {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1px,
+    rgba(0, 0, 0, 0.015) 1px,
+    rgba(0, 0, 0, 0.015) 2px
+  );
+}
+
+/* XP: glossy button overlay */
+[data-theme="xp"] .win-btn {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0.1) 49%,
+    rgba(0, 0, 0, 0.02) 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+}
+
+/* Vista: subtle glass effect on surfaces */
+[data-theme="vista"] .win-raised {
+  backdrop-filter: blur(2px);
+  background: rgba(245, 245, 245, 0.92);
+}
+
+[data-theme="vista"] .win-titlebar {
+  backdrop-filter: blur(12px);
 }

@@ -77,8 +77,8 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
               (item.disabled
                 ? "text-hub-text-dim cursor-default"
                 : item.danger
-                  ? "text-status-error hover:bg-[#316ac5] hover:text-white"
-                  : "text-hub-text hover:bg-[#316ac5] hover:text-white")
+                  ? "text-status-error hover:bg-[var(--list-hover)] hover:text-white"
+                  : "text-hub-text hover:bg-[var(--list-hover)] hover:text-white")
             }
           >
             {item.label}

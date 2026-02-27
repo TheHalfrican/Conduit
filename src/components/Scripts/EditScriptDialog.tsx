@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { Script } from "../../types";
 import { useScriptStore } from "../../stores/useScriptStore";
@@ -76,7 +77,7 @@ export function EditScriptDialog({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
       <div className="bg-hub-surface shadow-win-outset rounded-none w-full max-w-md mx-4">
         <div className="win-titlebar px-2 py-1 flex items-center justify-between">
@@ -180,6 +181,7 @@ export function EditScriptDialog({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

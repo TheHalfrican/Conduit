@@ -49,7 +49,7 @@ export function XTerminal({
         blue: "#5555ff",
         magenta: "#ff55ff",
         cyan: "#55ffff",
-        white: "#d4d0c8",
+        white: "#aaaaaa",
         brightBlack: "#808080",
         brightRed: "#ff5555",
         brightGreen: "#00ff41",
@@ -191,7 +191,7 @@ export function XTerminal({
       </div>
       <div
         ref={containerRef}
-        className="h-64 bg-black shadow-win-inset rounded-none xterm-container"
+        className="h-[28rem] bg-black shadow-win-inset rounded-none xterm-container"
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       />

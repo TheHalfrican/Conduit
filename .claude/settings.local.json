@@ -6,7 +6,8 @@
       "Bash(pnpm install:*)",
       "Bash(cargo check:*)",
       "Bash(npx tsc:*)",
-      "Bash(chmod +x:*)"
+      "Bash(chmod +x:*)",
+      "Bash(pnpm build:*)"
     ]
   }
 }

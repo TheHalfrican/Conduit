@@ -87,10 +87,12 @@ pub struct NewSchedule {
 pub struct Settings {
     pub id: i64,
     pub editor_path: String,
+    pub theme: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSettings {
     pub editor_path: Option<String>,
+    pub theme: Option<String>,
 }

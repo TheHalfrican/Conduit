@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="h-screen w-screen flex items-center justify-center bg-[#008080] p-8">
+        <div className="h-screen w-screen flex items-center justify-center bg-[var(--error-screen-bg)] p-8">
           <div className="max-w-lg bg-hub-surface shadow-win-outset rounded-none">
             <div className="bg-status-error text-white font-bold px-2 py-1 text-sm">
               Something went wrong

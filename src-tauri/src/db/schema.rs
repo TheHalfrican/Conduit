@@ -64,5 +64,8 @@ pub fn initialize(conn: &Connection) -> Result<(), rusqlite::Error> {
     // Migration: add run_as_admin column for existing databases
     let _ = conn.execute_batch("ALTER TABLE scripts ADD COLUMN run_as_admin BOOLEAN NOT NULL DEFAULT 0");
 
+    // Migration: add theme column to settings
+    let _ = conn.execute_batch("ALTER TABLE settings ADD COLUMN theme TEXT NOT NULL DEFAULT 'win98'");
+
     Ok(())
 }

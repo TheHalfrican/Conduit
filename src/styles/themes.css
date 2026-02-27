@@ -1,0 +1,236 @@
+/* ===== Win98 (default) ===== */
+:root,
+[data-theme="win98"] {
+  --hub-bg: #c0c0c0;
+  --hub-surface: #d4d0c8;
+  --hub-border: #808080;
+  --hub-text: #000000;
+  --hub-text-dim: #808080;
+
+  --accent: #0054e3;
+  --accent-hover: #0066ff;
+
+  --status-success: #008000;
+  --status-error: #ff0000;
+  --status-running: #0054e3;
+  --status-scheduled: #800080;
+
+  --win-white: #ffffff;
+  --win-highlight: #ffffff;
+  --win-shadow: #808080;
+  --win-dark: #404040;
+  --win-button-face: #d4d0c8;
+
+  --titlebar-bg: linear-gradient(180deg, #0a246a 0%, #3a6ea5 100%);
+  --titlebar-text: #ffffff;
+  --titlebar-text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+
+  --shadow-outset: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #404040,
+    inset 2px 2px 0 #d4d0c8, inset -2px -2px 0 #808080;
+  --shadow-inset: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff,
+    inset 2px 2px 0 #404040, inset -2px -2px 0 #d4d0c8;
+  --shadow-button: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #404040,
+    inset 2px 2px 0 #d4d0c8, inset -2px -2px 0 #808080;
+  --shadow-button-pressed: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff,
+    inset 2px 2px 0 #404040, inset -2px -2px 0 #d4d0c8;
+  --shadow-field: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff,
+    inset 2px 2px 0 #404040, inset -2px -2px 0 #d4d0c8;
+
+  --list-hover: #316ac5;
+  --card-hover-bg: #d4d0c8;
+  --error-screen-bg: #008080;
+
+  --font-sans: Tahoma, "MS Sans Serif", Arial, sans-serif;
+
+  --theme-radius: 0px;
+
+  --scrollbar-track: #c0c0c0;
+  --scrollbar-thumb: #d4d0c8;
+  --scrollbar-thumb-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #404040,
+    inset 2px 2px 0 #d4d0c8, inset -2px -2px 0 #808080;
+  --scrollbar-button: #d4d0c8;
+  --scrollbar-button-shadow: inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #404040;
+  --scrollbar-corner: #c0c0c0;
+}
+
+/* ===== Mac OS 8 (Platinum) ===== */
+[data-theme="macos8"] {
+  --hub-bg: #dddddd;
+  --hub-surface: #e8e8e8;
+  --hub-border: #999999;
+  --hub-text: #000000;
+  --hub-text-dim: #666666;
+
+  --accent: #0055cc;
+  --accent-hover: #0066ee;
+
+  --status-success: #006600;
+  --status-error: #cc0000;
+  --status-running: #0055cc;
+  --status-scheduled: #660099;
+
+  --win-white: #ffffff;
+  --win-highlight: #ffffff;
+  --win-shadow: #999999;
+  --win-dark: #555555;
+  --win-button-face: #e8e8e8;
+
+  --titlebar-bg: linear-gradient(
+    180deg,
+    #cccccc 0%,
+    #aaaaaa 20%,
+    #cccccc 40%,
+    #aaaaaa 60%,
+    #cccccc 80%,
+    #aaaaaa 100%
+  );
+  --titlebar-text: #000000;
+  --titlebar-text-shadow: none;
+
+  --shadow-outset: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #888888;
+  --shadow-inset: inset 1px 1px 0 #888888, inset -1px -1px 0 #ffffff;
+  --shadow-button: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #888888;
+  --shadow-button-pressed: inset 1px 1px 0 #888888, inset -1px -1px 0 #ffffff;
+  --shadow-field: inset 1px 1px 0 #888888, inset -1px -1px 0 #ffffff;
+
+  --list-hover: #0055cc;
+  --card-hover-bg: #e0e0e0;
+  --error-screen-bg: #666699;
+
+  --font-sans: "Charcoal", "Chicago", Geneva, Arial, sans-serif;
+
+  --theme-radius: 2px;
+
+  --scrollbar-track: #dddddd;
+  --scrollbar-thumb: #cccccc;
+  --scrollbar-thumb-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #888888;
+  --scrollbar-button: #cccccc;
+  --scrollbar-button-shadow: inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #888888;
+  --scrollbar-corner: #dddddd;
+}
+
+/* ===== Windows XP (Luna) ===== */
+[data-theme="xp"] {
+  --hub-bg: #ece9d8;
+  --hub-surface: #ece9d8;
+  --hub-border: #aca899;
+  --hub-text: #000000;
+  --hub-text-dim: #808080;
+
+  --accent: #003399;
+  --accent-hover: #0046d5;
+
+  --status-success: #008000;
+  --status-error: #cc0000;
+  --status-running: #003399;
+  --status-scheduled: #660099;
+
+  --win-white: #ffffff;
+  --win-highlight: #ffffff;
+  --win-shadow: #aca899;
+  --win-dark: #716f64;
+  --win-button-face: #ece9d8;
+
+  --titlebar-bg: linear-gradient(
+    180deg,
+    #0058ee 0%,
+    #3a8afd 18%,
+    #0553e9 33%,
+    #0050d4 48%,
+    #0058ee 72%,
+    #3c8bfe 87%,
+    #0554e8 100%
+  );
+  --titlebar-text: #ffffff;
+  --titlebar-text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+
+  --shadow-outset: 1px 1px 3px rgba(0, 0, 0, 0.15),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.6);
+  --shadow-inset: inset 1px 1px 2px rgba(0, 0, 0, 0.2),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.4);
+  --shadow-button: 1px 1px 2px rgba(0, 0, 0, 0.1),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-button-pressed: inset 1px 1px 2px rgba(0, 0, 0, 0.25),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.3);
+  --shadow-field: inset 1px 1px 2px rgba(0, 0, 0, 0.2),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.4);
+
+  --list-hover: #316ac5;
+  --card-hover-bg: #e4e0d0;
+  --error-screen-bg: #003399;
+
+  --font-sans: Tahoma, Arial, sans-serif;
+
+  --theme-radius: 3px;
+
+  --scrollbar-track: #f1efe2;
+  --scrollbar-thumb: #ced0d2;
+  --scrollbar-thumb-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.1);
+  --scrollbar-button: #ced0d2;
+  --scrollbar-button-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.1);
+  --scrollbar-corner: #f1efe2;
+}
+
+/* ===== Windows Vista (Aero) ===== */
+[data-theme="vista"] {
+  --hub-bg: #f0f0f0;
+  --hub-surface: #f5f5f5;
+  --hub-border: #b0b0b0;
+  --hub-text: #1a1a1a;
+  --hub-text-dim: #888888;
+
+  --accent: #0066cc;
+  --accent-hover: #0078ee;
+
+  --status-success: #22a22a;
+  --status-error: #e04040;
+  --status-running: #0066cc;
+  --status-scheduled: #8840aa;
+
+  --win-white: #ffffff;
+  --win-highlight: #ffffff;
+  --win-shadow: #b0b0b0;
+  --win-dark: #808080;
+  --win-button-face: #e8e8e8;
+
+  --titlebar-bg: linear-gradient(
+    180deg,
+    rgba(200, 220, 240, 0.95) 0%,
+    rgba(180, 200, 230, 0.9) 45%,
+    rgba(160, 185, 220, 0.88) 50%,
+    rgba(180, 200, 230, 0.9) 100%
+  );
+  --titlebar-text: #1a1a1a;
+  --titlebar-text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+
+  --shadow-outset: 0 1px 3px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-button-pressed: inset 0 1px 3px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  --shadow-field: inset 0 1px 3px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+
+  --list-hover: #0066cc;
+  --card-hover-bg: #e8e8e8;
+  --error-screen-bg: #2d5986;
+
+  --font-sans: "Segoe UI", Tahoma, Arial, sans-serif;
+
+  --theme-radius: 4px;
+
+  --scrollbar-track: #f0f0f0;
+  --scrollbar-thumb: #c8c8c8;
+  --scrollbar-thumb-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --scrollbar-button: #d0d0d0;
+  --scrollbar-button-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --scrollbar-corner: #f0f0f0;
+}
