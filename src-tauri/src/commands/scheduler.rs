@@ -1,17 +1,13 @@
 use crate::db::queries;
 use crate::db::Database;
 use crate::models::{NewSchedule, Schedule};
-use plist::Value;
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tauri::State;
 use uuid::Uuid;
 
-fn get_launch_agents_dir() -> PathBuf {
-    let mut path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-    path.push("Library");
-    path.push("LaunchAgents");
-    path
+fn generate_task_label(script_id: i64) -> String {
+    let short_uuid = &Uuid::new_v4().to_string()[..8];
+    format!("com.conduit.script.{}.{}", script_id, short_uuid)
 }
 
 fn get_logs_dir() -> PathBuf {
@@ -22,141 +18,325 @@ fn get_logs_dir() -> PathBuf {
     path
 }
 
-fn get_plist_path(label: &str) -> PathBuf {
-    let mut path = get_launch_agents_dir();
-    path.push(format!("{}.plist", label));
-    path
-}
+// ──────────────────────────────────────────────
+// macOS: launchd plist helpers
+// ──────────────────────────────────────────────
 
-fn generate_plist_label(script_id: i64) -> String {
-    let short_uuid = &Uuid::new_v4().to_string()[..8];
-    format!("com.conduit.script.{}.{}", script_id, short_uuid)
-}
+#[cfg(target_os = "macos")]
+mod platform {
+    use super::*;
+    use plist::Value;
+    use std::collections::BTreeMap;
 
-fn build_plist(label: &str, script_path: &str, schedule: &NewSchedule) -> Value {
-    let logs_dir = get_logs_dir();
-    let stdout_log = logs_dir.join(format!("{}.stdout.log", label));
-    let stderr_log = logs_dir.join(format!("{}.stderr.log", label));
+    fn get_launch_agents_dir() -> PathBuf {
+        let mut path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        path.push("Library");
+        path.push("LaunchAgents");
+        path
+    }
 
-    let mut dict = BTreeMap::new();
-    dict.insert("Label".to_string(), Value::String(label.to_string()));
+    fn get_plist_path(label: &str) -> PathBuf {
+        let mut path = get_launch_agents_dir();
+        path.push(format!("{}.plist", label));
+        path
+    }
 
-    // ProgramArguments
-    let args = Value::Array(vec![
-        Value::String("/bin/bash".to_string()),
-        Value::String(script_path.to_string()),
-    ]);
-    dict.insert("ProgramArguments".to_string(), args);
+    fn build_plist(label: &str, script_path: &str, schedule: &NewSchedule) -> Value {
+        let logs_dir = get_logs_dir();
+        let stdout_log = logs_dir.join(format!("{}.stdout.log", label));
+        let stderr_log = logs_dir.join(format!("{}.stderr.log", label));
 
-    // Environment variables for PATH
-    let mut env_dict = BTreeMap::new();
-    env_dict.insert(
-        "PATH".to_string(),
-        Value::String("/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin".to_string()),
-    );
-    dict.insert(
-        "EnvironmentVariables".to_string(),
-        Value::Dictionary(env_dict.into_iter().collect()),
-    );
+        let mut dict = BTreeMap::new();
+        dict.insert("Label".to_string(), Value::String(label.to_string()));
 
-    // Log files
-    dict.insert(
-        "StandardOutPath".to_string(),
-        Value::String(stdout_log.to_string_lossy().to_string()),
-    );
-    dict.insert(
-        "StandardErrorPath".to_string(),
-        Value::String(stderr_log.to_string_lossy().to_string()),
-    );
+        // ProgramArguments
+        let args = Value::Array(vec![
+            Value::String("/bin/bash".to_string()),
+            Value::String(script_path.to_string()),
+        ]);
+        dict.insert("ProgramArguments".to_string(), args);
 
-    // Schedule type
-    match schedule.schedule_type.as_str() {
-        "daily" => {
-            if let Some(ref time_str) = schedule.time {
-                let parts: Vec<&str> = time_str.split(':').collect();
-                if parts.len() == 2 {
-                    let hour: i64 = parts[0].parse().unwrap_or(0);
-                    let minute: i64 = parts[1].parse().unwrap_or(0);
-                    let mut cal = BTreeMap::new();
-                    cal.insert("Hour".to_string(), Value::Integer(hour.into()));
-                    cal.insert("Minute".to_string(), Value::Integer(minute.into()));
+        // Environment variables for PATH
+        let mut env_dict = BTreeMap::new();
+        env_dict.insert(
+            "PATH".to_string(),
+            Value::String("/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin".to_string()),
+        );
+        dict.insert(
+            "EnvironmentVariables".to_string(),
+            Value::Dictionary(env_dict.into_iter().collect()),
+        );
+
+        // Log files
+        dict.insert(
+            "StandardOutPath".to_string(),
+            Value::String(stdout_log.to_string_lossy().to_string()),
+        );
+        dict.insert(
+            "StandardErrorPath".to_string(),
+            Value::String(stderr_log.to_string_lossy().to_string()),
+        );
+
+        // Schedule type
+        match schedule.schedule_type.as_str() {
+            "daily" => {
+                if let Some(ref time_str) = schedule.time {
+                    let parts: Vec<&str> = time_str.split(':').collect();
+                    if parts.len() == 2 {
+                        let hour: i64 = parts[0].parse().unwrap_or(0);
+                        let minute: i64 = parts[1].parse().unwrap_or(0);
+                        let mut cal = BTreeMap::new();
+                        cal.insert("Hour".to_string(), Value::Integer(hour.into()));
+                        cal.insert("Minute".to_string(), Value::Integer(minute.into()));
+                        dict.insert(
+                            "StartCalendarInterval".to_string(),
+                            Value::Dictionary(cal.into_iter().collect()),
+                        );
+                    }
+                }
+            }
+            "weekly" => {
+                if let (Some(ref time_str), Some(weekday)) = (&schedule.time, schedule.weekday) {
+                    let parts: Vec<&str> = time_str.split(':').collect();
+                    if parts.len() == 2 {
+                        let hour: i64 = parts[0].parse().unwrap_or(0);
+                        let minute: i64 = parts[1].parse().unwrap_or(0);
+                        let mut cal = BTreeMap::new();
+                        cal.insert("Weekday".to_string(), Value::Integer((weekday as i64).into()));
+                        cal.insert("Hour".to_string(), Value::Integer(hour.into()));
+                        cal.insert("Minute".to_string(), Value::Integer(minute.into()));
+                        dict.insert(
+                            "StartCalendarInterval".to_string(),
+                            Value::Dictionary(cal.into_iter().collect()),
+                        );
+                    }
+                }
+            }
+            "interval" => {
+                if let Some(seconds) = schedule.interval_seconds {
                     dict.insert(
-                        "StartCalendarInterval".to_string(),
-                        Value::Dictionary(cal.into_iter().collect()),
+                        "StartInterval".to_string(),
+                        Value::Integer(seconds.into()),
                     );
                 }
             }
+            _ => {}
         }
-        "weekly" => {
-            if let (Some(ref time_str), Some(weekday)) = (&schedule.time, schedule.weekday) {
-                let parts: Vec<&str> = time_str.split(':').collect();
-                if parts.len() == 2 {
-                    let hour: i64 = parts[0].parse().unwrap_or(0);
-                    let minute: i64 = parts[1].parse().unwrap_or(0);
-                    let mut cal = BTreeMap::new();
-                    cal.insert("Weekday".to_string(), Value::Integer((weekday as i64).into()));
-                    cal.insert("Hour".to_string(), Value::Integer(hour.into()));
-                    cal.insert("Minute".to_string(), Value::Integer(minute.into()));
-                    dict.insert(
-                        "StartCalendarInterval".to_string(),
-                        Value::Dictionary(cal.into_iter().collect()),
-                    );
-                }
-            }
-        }
-        "interval" => {
-            if let Some(seconds) = schedule.interval_seconds {
-                dict.insert(
-                    "StartInterval".to_string(),
-                    Value::Integer(seconds.into()),
-                );
-            }
-        }
-        _ => {}
+
+        Value::Dictionary(dict.into_iter().collect())
     }
 
-    Value::Dictionary(dict.into_iter().collect())
-}
+    pub fn create_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+        let plist_value = build_plist(label, script_path, schedule);
+        let plist_path = get_plist_path(label);
 
-fn write_and_load_plist(label: &str, plist_value: &Value) -> Result<(), String> {
-    let plist_path = get_plist_path(label);
+        // Ensure LaunchAgents dir exists
+        if let Some(parent) = plist_path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
 
-    // Ensure LaunchAgents dir exists
-    if let Some(parent) = plist_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
+        // Write plist file
+        let file = std::fs::File::create(&plist_path).map_err(|e| e.to_string())?;
+        plist_value.to_writer_xml(file).map_err(|e| e.to_string())?;
 
-    // Write plist file
-    let file = std::fs::File::create(&plist_path).map_err(|e| e.to_string())?;
-    plist_value.to_writer_xml(file).map_err(|e| e.to_string())?;
-
-    // Load with launchctl
-    std::process::Command::new("launchctl")
-        .args(["load", &plist_path.to_string_lossy()])
-        .output()
-        .map_err(|e| e.to_string())?;
-
-    Ok(())
-}
-
-fn unload_plist(label: &str) -> Result<(), String> {
-    let plist_path = get_plist_path(label);
-    if plist_path.exists() {
+        // Load with launchctl
         std::process::Command::new("launchctl")
-            .args(["unload", &plist_path.to_string_lossy()])
+            .args(["load", &plist_path.to_string_lossy()])
             .output()
             .map_err(|e| e.to_string())?;
+
+        Ok(())
     }
-    Ok(())
+
+    pub fn delete_scheduled_task(label: &str) -> Result<(), String> {
+        let plist_path = get_plist_path(label);
+        if plist_path.exists() {
+            std::process::Command::new("launchctl")
+                .args(["unload", &plist_path.to_string_lossy()])
+                .output()
+                .map_err(|e| e.to_string())?;
+            std::fs::remove_file(&plist_path).map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    }
+
+    pub fn enable_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+        create_scheduled_task(label, script_path, schedule)
+    }
+
+    pub fn disable_scheduled_task(label: &str) -> Result<(), String> {
+        let plist_path = get_plist_path(label);
+        if plist_path.exists() {
+            std::process::Command::new("launchctl")
+                .args(["unload", &plist_path.to_string_lossy()])
+                .output()
+                .map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    }
+
+    pub fn task_exists(label: &str) -> bool {
+        get_plist_path(label).exists()
+    }
 }
 
-fn remove_plist_file(label: &str) -> Result<(), String> {
-    let plist_path = get_plist_path(label);
-    if plist_path.exists() {
-        std::fs::remove_file(&plist_path).map_err(|e| e.to_string())?;
+// ──────────────────────────────────────────────
+// Windows: Task Scheduler (schtasks) helpers
+// ──────────────────────────────────────────────
+
+#[cfg(target_os = "windows")]
+mod platform {
+    use super::*;
+
+    fn build_schtasks_command(label: &str, script_path: &str, schedule: &NewSchedule) -> Vec<String> {
+        let logs_dir = get_logs_dir();
+        let stdout_log = logs_dir.join(format!("{}.stdout.log", label));
+
+        let ext = std::path::Path::new(script_path)
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        let tr = match ext.as_str() {
+            "ps1" => format!(
+                "powershell.exe -ExecutionPolicy Bypass -File \"{}\" > \"{}\" 2>&1",
+                script_path,
+                stdout_log.to_string_lossy()
+            ),
+            "cmd" | "bat" => format!(
+                "cmd.exe /C \"{}\" > \"{}\" 2>&1",
+                script_path,
+                stdout_log.to_string_lossy()
+            ),
+            _ => format!(
+                "\"{}\" > \"{}\" 2>&1",
+                script_path,
+                stdout_log.to_string_lossy()
+            ),
+        };
+
+        let mut args = vec![
+            "/Create".to_string(),
+            "/TN".to_string(),
+            label.to_string(),
+            "/TR".to_string(),
+            tr,
+            "/F".to_string(),
+        ];
+
+        match schedule.schedule_type.as_str() {
+            "daily" => {
+                args.push("/SC".to_string());
+                args.push("DAILY".to_string());
+                if let Some(ref time_str) = schedule.time {
+                    args.push("/ST".to_string());
+                    args.push(time_str.clone());
+                }
+            }
+            "weekly" => {
+                args.push("/SC".to_string());
+                args.push("WEEKLY".to_string());
+                if let Some(weekday) = schedule.weekday {
+                    let day = match weekday {
+                        0 => "SUN",
+                        1 => "MON",
+                        2 => "TUE",
+                        3 => "WED",
+                        4 => "THU",
+                        5 => "FRI",
+                        6 => "SAT",
+                        _ => "MON",
+                    };
+                    args.push("/D".to_string());
+                    args.push(day.to_string());
+                }
+                if let Some(ref time_str) = schedule.time {
+                    args.push("/ST".to_string());
+                    args.push(time_str.clone());
+                }
+            }
+            "interval" => {
+                if let Some(seconds) = schedule.interval_seconds {
+                    let minutes = (seconds / 60).max(1);
+                    args.push("/SC".to_string());
+                    args.push("MINUTE".to_string());
+                    args.push("/MO".to_string());
+                    args.push(minutes.to_string());
+                }
+            }
+            _ => {}
+        }
+
+        args
     }
-    Ok(())
+
+    pub fn create_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+        let args = build_schtasks_command(label, script_path, schedule);
+        let output = std::process::Command::new("schtasks")
+            .args(&args)
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        }
+        Ok(())
+    }
+
+    pub fn delete_scheduled_task(label: &str) -> Result<(), String> {
+        let output = std::process::Command::new("schtasks")
+            .args(["/Delete", "/TN", label, "/F"])
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if !stderr.contains("The system cannot find") {
+                return Err(stderr.to_string());
+            }
+        }
+        Ok(())
+    }
+
+    pub fn enable_scheduled_task(_label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+        // On Windows, re-creating the task effectively enables it
+        create_scheduled_task(_label, script_path, schedule)?;
+        let output = std::process::Command::new("schtasks")
+            .args(["/Change", "/TN", _label, "/ENABLE"])
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        }
+        Ok(())
+    }
+
+    pub fn disable_scheduled_task(label: &str) -> Result<(), String> {
+        let output = std::process::Command::new("schtasks")
+            .args(["/Change", "/TN", label, "/DISABLE"])
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        }
+        Ok(())
+    }
+
+    pub fn task_exists(label: &str) -> bool {
+        std::process::Command::new("schtasks")
+            .args(["/Query", "/TN", label])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    }
 }
+
+// ──────────────────────────────────────────────
+// Tauri commands (platform-agnostic interface)
+// ──────────────────────────────────────────────
 
 #[tauri::command]
 pub fn create_schedule(
@@ -169,7 +349,7 @@ pub fn create_schedule(
 ) -> Result<Schedule, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
 
-    // Get script path for plist
+    // Get script path
     let script = queries::get_script_by_id(&conn, script_id).map_err(|e| e.to_string())?;
 
     let new_schedule = NewSchedule {
@@ -180,14 +360,13 @@ pub fn create_schedule(
         interval_seconds,
     };
 
-    let plist_label = generate_plist_label(script_id);
+    let task_label = generate_task_label(script_id);
 
-    // Build and write plist
-    let plist_value = build_plist(&plist_label, &script.path, &new_schedule);
-    write_and_load_plist(&plist_label, &plist_value)?;
+    // Create the OS-level scheduled task
+    platform::create_scheduled_task(&task_label, &script.path, &new_schedule)?;
 
     // Insert into DB
-    let schedule = queries::insert_schedule(&conn, &new_schedule, &plist_label).map_err(|e| e.to_string())?;
+    let schedule = queries::insert_schedule(&conn, &new_schedule, &task_label).map_err(|e| e.to_string())?;
 
     Ok(schedule)
 }
@@ -198,7 +377,6 @@ pub fn update_schedule(db: State<'_, Database>, schedule_id: i64, enabled: bool)
     let schedule = queries::get_schedule_by_id(&conn, schedule_id).map_err(|e| e.to_string())?;
 
     if enabled {
-        // Re-create and load plist
         let script = queries::get_script_by_id(&conn, schedule.script_id).map_err(|e| e.to_string())?;
         let new_schedule = NewSchedule {
             script_id: schedule.script_id,
@@ -207,10 +385,9 @@ pub fn update_schedule(db: State<'_, Database>, schedule_id: i64, enabled: bool)
             weekday: schedule.weekday,
             interval_seconds: schedule.interval_seconds,
         };
-        let plist_value = build_plist(&schedule.plist_label, &script.path, &new_schedule);
-        write_and_load_plist(&schedule.plist_label, &plist_value)?;
+        platform::enable_scheduled_task(&schedule.plist_label, &script.path, &new_schedule)?;
     } else {
-        unload_plist(&schedule.plist_label)?;
+        platform::disable_scheduled_task(&schedule.plist_label)?;
     }
 
     queries::update_schedule_enabled(&conn, schedule_id, enabled).map_err(|e| e.to_string())?;
@@ -222,9 +399,8 @@ pub fn delete_schedule(db: State<'_, Database>, schedule_id: i64) -> Result<(), 
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let schedule = queries::get_schedule_by_id(&conn, schedule_id).map_err(|e| e.to_string())?;
 
-    // Unload and remove plist file
-    unload_plist(&schedule.plist_label)?;
-    remove_plist_file(&schedule.plist_label)?;
+    // Remove OS-level scheduled task
+    platform::delete_scheduled_task(&schedule.plist_label)?;
 
     // Remove from DB
     queries::delete_schedule(&conn, schedule_id).map_err(|e| e.to_string())?;
@@ -246,10 +422,9 @@ pub fn toggle_schedule(db: State<'_, Database>, schedule_id: i64) -> Result<bool
             weekday: schedule.weekday,
             interval_seconds: schedule.interval_seconds,
         };
-        let plist_value = build_plist(&schedule.plist_label, &script.path, &new_schedule);
-        write_and_load_plist(&schedule.plist_label, &plist_value)?;
+        platform::enable_scheduled_task(&schedule.plist_label, &script.path, &new_schedule)?;
     } else {
-        unload_plist(&schedule.plist_label)?;
+        platform::disable_scheduled_task(&schedule.plist_label)?;
     }
 
     queries::update_schedule_enabled(&conn, schedule_id, new_enabled).map_err(|e| e.to_string())?;
@@ -268,11 +443,9 @@ pub fn sync_schedules(db: State<'_, Database>) -> Result<(), String> {
     let schedules = queries::get_all_schedules(&conn).map_err(|e| e.to_string())?;
 
     for schedule in schedules {
-        let plist_path = get_plist_path(&schedule.plist_label);
-
         if schedule.enabled {
-            // If enabled but plist doesn't exist, recreate it
-            if !plist_path.exists() {
+            // If enabled but task doesn't exist, recreate it
+            if !platform::task_exists(&schedule.plist_label) {
                 if let Ok(script) = queries::get_script_by_id(&conn, schedule.script_id) {
                     let new_schedule = NewSchedule {
                         script_id: schedule.script_id,
@@ -281,14 +454,13 @@ pub fn sync_schedules(db: State<'_, Database>) -> Result<(), String> {
                         weekday: schedule.weekday,
                         interval_seconds: schedule.interval_seconds,
                     };
-                    let plist_value = build_plist(&schedule.plist_label, &script.path, &new_schedule);
-                    let _ = write_and_load_plist(&schedule.plist_label, &plist_value);
+                    let _ = platform::create_scheduled_task(&schedule.plist_label, &script.path, &new_schedule);
                 }
             }
         } else {
-            // If disabled but plist exists, unload it
-            if plist_path.exists() {
-                let _ = unload_plist(&schedule.plist_label);
+            // If disabled but task exists, disable/remove it
+            if platform::task_exists(&schedule.plist_label) {
+                let _ = platform::disable_scheduled_task(&schedule.plist_label);
             }
         }
     }

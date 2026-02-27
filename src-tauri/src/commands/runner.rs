@@ -1,20 +1,25 @@
 use crate::db::queries;
 use crate::db::Database;
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 pub struct RunnerState {
     pub active_processes: Arc<Mutex<HashMap<i64, u32>>>,
+    pub cancelled_scripts: Arc<Mutex<HashSet<i64>>>,
 }
 
 impl RunnerState {
     pub fn new() -> Self {
         RunnerState {
             active_processes: Arc::new(Mutex::new(HashMap::new())),
+            cancelled_scripts: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 }
@@ -33,6 +38,53 @@ struct ScriptFinishedEvent {
     script_id: i64,
     exit_code: i32,
     record_id: i64,
+}
+
+fn build_script_command(script_path: &str) -> Command {
+    #[cfg(target_os = "macos")]
+    {
+        let mut cmd = Command::new("/bin/bash");
+        cmd.arg(script_path)
+            .env(
+                "PATH",
+                "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+            )
+            .process_group(0);
+        cmd
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let ext = std::path::Path::new(script_path)
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+        let mut cmd = match ext.as_str() {
+            "ps1" => {
+                let mut c = Command::new("powershell.exe");
+                c.args(["-ExecutionPolicy", "Bypass", "-File", script_path]);
+                c
+            }
+            "cmd" | "bat" => {
+                let mut c = Command::new("cmd.exe");
+                c.args(["/C", script_path]);
+                c
+            }
+            _ => {
+                let c = Command::new(script_path);
+                c
+            }
+        };
+        // CREATE_NEW_PROCESS_GROUP
+        cmd.creation_flags(0x00000200);
+        cmd
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        let mut cmd = Command::new("/bin/bash");
+        cmd.arg(script_path).process_group(0);
+        cmd
+    }
 }
 
 #[tauri::command]
@@ -58,15 +110,10 @@ pub async fn run_script(
     let record_id = record.id;
 
     // Spawn the script process in its own process group so we can kill the whole tree
-    let mut child = Command::new("/bin/bash")
-        .arg(&script_path)
-        .env(
-            "PATH",
-            "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
-        )
+    let mut cmd = build_script_command(&script_path);
+    let mut child = cmd
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
-        .process_group(0)
         .spawn()
         .map_err(|e| e.to_string())?;
 
@@ -83,6 +130,7 @@ pub async fn run_script(
 
     // Clone Arc references for the spawned task
     let active_procs = Arc::clone(&runner.active_processes);
+    let cancelled = Arc::clone(&runner.cancelled_scripts);
     let app_handle = app.clone();
 
     // Spawn async task to read output and wait for completion
@@ -160,17 +208,20 @@ pub async fn run_script(
 
         // Wait for process to finish
         let wait_result = child.wait().await;
-        let (exit_code, was_signalled) = match &wait_result {
-            Ok(status) => (
-                status.code().unwrap_or(-1),
-                status.code().is_none(), // No exit code means killed by signal
-            ),
-            Err(_) => (-1, false),
+        let exit_code = match &wait_result {
+            Ok(status) => status.code().unwrap_or(-1),
+            Err(_) => -1,
         };
+
+        // Check if this script was explicitly cancelled
+        let was_cancelled = cancelled
+            .lock()
+            .map(|mut set| set.remove(&script_id))
+            .unwrap_or(false);
 
         let status = if exit_code == 0 {
             "success"
-        } else if was_signalled {
+        } else if was_cancelled {
             "cancelled"
         } else {
             "error"
@@ -214,11 +265,30 @@ pub async fn run_script(
 pub fn cancel_script(runner: State<'_, RunnerState>, script_id: i64) -> Result<(), String> {
     let procs = runner.active_processes.lock().map_err(|e| e.to_string())?;
     if let Some(&pid) = procs.get(&script_id) {
+        // Mark as cancelled before killing so the async task can detect it
+        if let Ok(mut set) = runner.cancelled_scripts.lock() {
+            set.insert(script_id);
+        }
+
+        #[cfg(target_os = "macos")]
         unsafe {
             // Kill the entire process group (negative PID) so child processes
             // like rsync and piped commands are also terminated
             libc::kill(-(pid as i32), libc::SIGTERM);
         }
+
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("taskkill")
+                .args(["/T", "/F", "/PID", &pid.to_string()])
+                .output();
+        }
+
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        unsafe {
+            libc::kill(-(pid as i32), libc::SIGTERM);
+        }
+
         Ok(())
     } else {
         Err("Script is not running".to_string())

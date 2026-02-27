@@ -4,14 +4,42 @@ use crate::models::*;
 
 // --- Script queries ---
 
+fn check_is_executable(path: &str) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        std::fs::metadata(path)
+            .map(|m| {
+                use std::os::unix::fs::PermissionsExt;
+                m.permissions().mode() & 0o111 != 0
+            })
+            .unwrap_or(false)
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let ext = std::path::Path::new(path)
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+        match ext.as_str() {
+            "bat" | "cmd" | "ps1" | "exe" => true,
+            _ => std::fs::metadata(path).is_ok(),
+        }
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        std::fs::metadata(path)
+            .map(|m| {
+                use std::os::unix::fs::PermissionsExt;
+                m.permissions().mode() & 0o111 != 0
+            })
+            .unwrap_or(false)
+    }
+}
+
 pub fn insert_script(conn: &Connection, new: &NewScript) -> Result<Script, rusqlite::Error> {
     // Check if path is executable
-    let is_exec = std::fs::metadata(&new.path)
-        .map(|m| {
-            use std::os::unix::fs::PermissionsExt;
-            m.permissions().mode() & 0o111 != 0
-        })
-        .unwrap_or(false);
+    let is_exec = check_is_executable(&new.path);
 
     conn.execute(
         "INSERT INTO scripts (name, path, description, category_id, color, is_executable) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -82,12 +110,7 @@ pub fn update_script(conn: &Connection, id: i64, update: &UpdateScript) -> Resul
         conn.execute("UPDATE scripts SET name = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2", params![name, id])?;
     }
     if let Some(ref path) = update.path {
-        let is_exec = std::fs::metadata(path)
-            .map(|m| {
-                use std::os::unix::fs::PermissionsExt;
-                m.permissions().mode() & 0o111 != 0
-            })
-            .unwrap_or(false);
+        let is_exec = check_is_executable(path);
         conn.execute("UPDATE scripts SET path = ?1, is_executable = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?3", params![path, is_exec, id])?;
     }
     if let Some(ref description) = update.description {
@@ -268,10 +291,10 @@ pub fn clear_run_history(conn: &Connection, script_id: i64) -> Result<(), rusqli
 
 // --- Schedule queries ---
 
-pub fn insert_schedule(conn: &Connection, new: &NewSchedule, plist_label: &str) -> Result<Schedule, rusqlite::Error> {
+pub fn insert_schedule(conn: &Connection, new: &NewSchedule, task_label: &str) -> Result<Schedule, rusqlite::Error> {
     conn.execute(
         "INSERT INTO schedules (script_id, schedule_type, time, weekday, interval_seconds, plist_label) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![new.script_id, new.schedule_type, new.time, new.weekday, new.interval_seconds, plist_label],
+        params![new.script_id, new.schedule_type, new.time, new.weekday, new.interval_seconds, task_label],
     )?;
     let id = conn.last_insert_rowid();
 

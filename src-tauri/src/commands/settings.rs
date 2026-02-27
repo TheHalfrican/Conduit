@@ -24,12 +24,23 @@ pub fn open_in_editor(db: State<'_, Database>, script_path: String) -> Result<()
         return Err("No editor configured. Set an editor path in Settings.".to_string());
     }
 
-    if settings.editor_path.ends_with(".app") {
-        std::process::Command::new("open")
-            .args(["-a", &settings.editor_path, &script_path])
-            .spawn()
-            .map_err(|e| format!("Failed to open editor: {}", e))?;
-    } else {
+    #[cfg(target_os = "macos")]
+    {
+        if settings.editor_path.ends_with(".app") {
+            std::process::Command::new("open")
+                .args(["-a", &settings.editor_path, &script_path])
+                .spawn()
+                .map_err(|e| format!("Failed to open editor: {}", e))?;
+        } else {
+            std::process::Command::new(&settings.editor_path)
+                .arg(&script_path)
+                .spawn()
+                .map_err(|e| format!("Failed to open editor: {}", e))?;
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
         std::process::Command::new(&settings.editor_path)
             .arg(&script_path)
             .spawn()

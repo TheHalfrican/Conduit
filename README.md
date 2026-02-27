@@ -1,6 +1,6 @@
 # Conduit
 
-A native macOS desktop app for organizing, running, and scheduling shell scripts from one place.
+A cross-platform desktop app for organizing, running, and scheduling shell scripts from one place.
 
 Built with **Tauri v2**, **React 19**, **TypeScript**, and **Rust**.
 
@@ -9,9 +9,9 @@ Built with **Tauri v2**, **React 19**, **TypeScript**, and **Rust**.
 - **Script Management** — Add, edit, and organize scripts into color-coded categories
 - **Live Terminal Output** — Run scripts and stream stdout/stderr in real time with virtualized scrolling
 - **Run History** — Track exit codes, duration, and output for every execution
-- **Scheduling** — Schedule scripts to run daily, weekly, or at fixed intervals via native macOS launchd
+- **Scheduling** — Schedule scripts to run daily, weekly, or at fixed intervals via launchd (macOS) or Task Scheduler (Windows)
 - **Search & Filter** — Quickly find scripts by name, description, or category
-- **Keyboard Shortcuts** — `Cmd+N` (add), `Cmd+R` (run), `Cmd+F` (search), `Esc` (back)
+- **Keyboard Shortcuts** — `Cmd/Ctrl+N` (add), `Cmd/Ctrl+R` (run), `Cmd/Ctrl+F` (search), `Esc` (back)
 
 ## Tech Stack
 
@@ -22,12 +22,12 @@ Built with **Tauri v2**, **React 19**, **TypeScript**, and **Rust**.
 | Styling | Tailwind CSS v3 |
 | State | Zustand v5 |
 | Backend | Rust, rusqlite (SQLite) |
-| Scheduling | launchd (LaunchAgent plists) |
+| Scheduling | launchd (macOS) / Task Scheduler (Windows) |
 | Package Manager | pnpm |
 
 ## Prerequisites
 
-- **macOS** (launchd scheduling is macOS-specific)
+- **macOS** or **Windows 10+**
 - [Node.js](https://nodejs.org/) 18+
 - [pnpm](https://pnpm.io/)
 - [Rust](https://rustup.rs/)

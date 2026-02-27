@@ -70,12 +70,12 @@ export function useScriptContextMenu(script: Script) {
         onClick: () => setShowEdit(true),
       },
       {
-        label: "Show in Finder",
+        label: "Reveal in File Manager",
         onClick: async () => {
           try {
             await revealItemInDir(script.path);
           } catch {
-            toast.error("Failed to reveal in Finder");
+            toast.error("Failed to reveal file");
           }
         },
       },

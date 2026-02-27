@@ -26,7 +26,7 @@ export function SettingsDialog({ open: isOpen, onClose }: SettingsDialogProps) {
     try {
       const selected = await open({
         filters: [
-          { name: "Applications", extensions: ["app"] },
+          { name: "Applications", extensions: ["app", "exe"] },
           { name: "All Files", extensions: ["*"] },
         ],
         multiple: false,
@@ -75,7 +75,7 @@ export function SettingsDialog({ open: isOpen, onClose }: SettingsDialogProps) {
                 type="text"
                 value={editorPath}
                 onChange={(e) => setEditorPath(e.target.value)}
-                placeholder="/usr/local/bin/code"
+                placeholder="e.g. code, notepad++, /usr/local/bin/code"
                 className="flex-1 bg-white shadow-win-field rounded-none px-2 py-1.5 text-sm text-hub-text placeholder:text-hub-text-dim focus:outline-none"
               />
               <Button type="button" variant="secondary" onClick={handleBrowse}>

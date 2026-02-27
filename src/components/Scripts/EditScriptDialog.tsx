@@ -39,7 +39,7 @@ export function EditScriptDialog({
   async function handlePickFile() {
     const selected = await open({
       filters: [
-        { name: "Scripts", extensions: ["sh", "command", "bash", "zsh"] },
+        { name: "Scripts", extensions: ["sh", "command", "bash", "zsh", "bat", "cmd", "ps1"] },
       ],
       multiple: false,
     });
