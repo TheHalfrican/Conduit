@@ -1,9 +1,10 @@
-# ============================================================
+﻿# ============================================================
 # Conduit Terminal Test Script (.ps1 — Windows PowerShell)
 # Tests PTY features: colors, input, cursor control, etc.
 # ============================================================
 
 $ESC = [char]27
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 function Write-Color {
     param([string]$Text, [string]$Code)
@@ -80,15 +81,17 @@ Write-Host ""
 
 # --- Section 7: Interactive Input ---
 Write-Host "$ESC[1m[6/7] Interactive Input Test$ESC[0m"
-Write-Host "  $ESC[33mType your name and press Enter:$ESC[0m"
+Write-Host "  $ESC[33mType your name and press Enter (q to quit):$ESC[0m"
 Write-Host -NoNewline "  > "
 $username = Read-Host
+if ($username -eq 'q') { exit }
 Write-Host "  $ESC[32mHello, $ESC[1m$username$ESC[0;32m!$ESC[0m"
 Write-Host ""
 
-Write-Host "  $ESC[33mPick a color [r/g/b]:$ESC[0m"
+Write-Host "  $ESC[33mPick a color [r/g/b] (q to quit):$ESC[0m"
 Write-Host -NoNewline "  > "
 $colorPick = Read-Host
+if ($colorPick -eq 'q') { exit }
 switch ($colorPick.ToLower()) {
     "r" { Write-Host "  $ESC[31mYou picked red!$ESC[0m" }
     "g" { Write-Host "  $ESC[32mYou picked green!$ESC[0m" }
@@ -113,6 +116,7 @@ Write-Host ""
 $cols = $Host.UI.RawUI.WindowSize.Width
 $rows = $Host.UI.RawUI.WindowSize.Height
 Write-Host "$ESC[1;36m══════════════════════════════════════════$ESC[0m"
-Write-Host "$ESC[1;32m  All tests passed! (.ps1 on $($PSVersionTable.OS ?? 'Windows'))$ESC[0m"
+$osName = if ($PSVersionTable.OS) { $PSVersionTable.OS } else { 'Windows' }
+Write-Host "$ESC[1;32m  All tests passed! (.ps1 on $osName)$ESC[0m"
 Write-Host "$ESC[2m  TERM=$env:TERM | PowerShell $($PSVersionTable.PSVersion) | ${cols}x${rows}$ESC[0m"
 Write-Host "$ESC[1;36m══════════════════════════════════════════$ESC[0m"

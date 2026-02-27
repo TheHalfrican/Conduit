@@ -4,6 +4,7 @@ REM Conduit Terminal Test Script (.cmd — Windows Command Prompt)
 REM Tests PTY features: colors, input, cursor control, etc.
 REM ============================================================
 setlocal EnableDelayedExpansion
+chcp 65001 >nul
 
 cls
 
@@ -45,13 +46,15 @@ echo.
 
 REM --- Section 5: Interactive Input ---
 echo [1m[4/7] Interactive Input Test[0m
-echo   [33mType your name and press Enter:[0m
+echo   [33mType your name and press Enter (q to quit):[0m
 set /p "USERNAME=  > "
+if /i "%USERNAME%"=="q" goto :done
 echo   [32mHello, [1m%USERNAME%[0;32m![0m
 echo.
 
-echo   [33mPick a color [r/g/b]:[0m
+echo   [33mPick a color [r/g/b] (q to quit):[0m
 set /p "COLORPICK=  > "
+if /i "%COLORPICK%"=="q" goto :done
 if /i "%COLORPICK%"=="r" (
     echo   [31mYou picked red![0m
 ) else if /i "%COLORPICK%"=="g" (
@@ -88,4 +91,5 @@ echo [1;36m═══════════════════════
 echo [1;32m  All tests passed! (.cmd on Windows)[0m
 echo [1;36m══════════════════════════════════════════[0m
 
+:done
 endlocal

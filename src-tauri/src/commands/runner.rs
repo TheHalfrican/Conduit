@@ -171,11 +171,37 @@ pub async fn run_script(
     // Spawn a std::thread for blocking PTY reads
     std::thread::spawn(move || {
         let mut reader = reader;
-        let mut child = child;
         let mut buf = [0u8; 4096];
         let mut output_acc = String::new();
         let max_output_bytes: usize = 50 * 1024;
         let b64 = base64::engine::general_purpose::STANDARD;
+
+        // Spawn a waiter thread that blocks on child.wait(). When the child
+        // exits, it drops the PtyProcess (closing the ConPTY master on Windows).
+        // On Windows, ConPTY doesn't send EOF to the reader when the child
+        // exits — the pipe stays open. Dropping the master closes the pseudo-
+        // console, which breaks the pipe and unblocks reader.read().
+        // On Unix this is harmless: the reader already gets EOF when the PTY
+        // slave closes, and the remove() is a no-op if already cleaned up.
+        let active_procs_waiter = Arc::clone(&active_procs);
+        let child_waiter = std::thread::spawn(move || {
+            let mut child = child;
+            let exit_code = match child.wait() {
+                Ok(status) => {
+                    if status.success() {
+                        0
+                    } else {
+                        1
+                    }
+                }
+                Err(_) => -1,
+            };
+            // Drop the PtyProcess to close the master and unblock the reader
+            if let Ok(mut procs) = active_procs_waiter.lock() {
+                procs.remove(&script_id);
+            }
+            exit_code
+        });
 
         loop {
             match reader.read(&mut buf) {
@@ -210,19 +236,8 @@ pub async fn run_script(
             }
         }
 
-        // Wait for child exit
-        let exit_code = match child.wait() {
-            Ok(status) => {
-                if status.success() {
-                    0
-                } else {
-                    // portable-pty ExitStatus doesn't expose the raw code on all platforms,
-                    // but we can check success. Use 1 for generic failure.
-                    1
-                }
-            }
-            Err(_) => -1,
-        };
+        // The child waiter has already finished (it's what unblocked us)
+        let exit_code = child_waiter.join().unwrap_or(-1);
 
         // Check if this script was explicitly cancelled
         let was_cancelled = cancelled
@@ -252,7 +267,7 @@ pub async fn run_script(
             );
         }
 
-        // Remove from active processes
+        // Remove from active processes (no-op if waiter already removed it)
         if let Ok(mut procs) = active_procs.lock() {
             procs.remove(&script_id);
         }
@@ -314,32 +329,45 @@ pub fn resize_script_pty(
 
 #[tauri::command]
 pub fn cancel_script(runner: State<'_, RunnerState>, script_id: i64) -> Result<(), String> {
-    let procs = runner.active_processes.lock().map_err(|e| e.to_string())?;
-    if let Some(pty) = procs.get(&script_id) {
-        // Mark as cancelled before killing so the reader thread can detect it
-        if let Ok(mut set) = runner.cancelled_scripts.lock() {
-            set.insert(script_id);
+    // Extract PID while holding the lock briefly
+    let pid = {
+        let procs = runner.active_processes.lock().map_err(|e| e.to_string())?;
+        match procs.get(&script_id) {
+            Some(pty) => pty.child_pid,
+            None => return Err("Script is not running".to_string()),
         }
+    };
 
-        let pid = pty.child_pid;
-
-        #[cfg(unix)]
-        unsafe {
-            // Kill the entire process group (negative PID) so child processes are also terminated
-            libc::kill(-(pid as i32), libc::SIGTERM);
-        }
-
-        #[cfg(target_os = "windows")]
-        {
-            let _ = std::process::Command::new("taskkill")
-                .args(["/T", "/F", "/PID", &pid.to_string()])
-                .output();
-        }
-
-        Ok(())
-    } else {
-        Err("Script is not running".to_string())
+    // Mark as cancelled before killing so the reader thread can detect it
+    if let Ok(mut set) = runner.cancelled_scripts.lock() {
+        set.insert(script_id);
     }
+
+    #[cfg(unix)]
+    unsafe {
+        // Kill the entire process group (negative PID) so child processes are also terminated
+        libc::kill(-(pid as i32), libc::SIGTERM);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // Fire-and-forget: don't block waiting for taskkill to finish,
+        // as tree enumeration (/T) can be slow.
+        let _ = std::process::Command::new("taskkill")
+            .args(["/T", "/F", "/PID", &pid.to_string()])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn();
+
+        // Drop the PtyProcess to close the ConPTY master handle. This breaks
+        // the pipe and unblocks the reader thread, which would otherwise block
+        // indefinitely on read() since taskkill doesn't close ConPTY pipes.
+        if let Ok(mut procs) = runner.active_processes.lock() {
+            procs.remove(&script_id);
+        }
+    }
+
+    Ok(())
 }
 
 #[tauri::command]

@@ -4,6 +4,7 @@ REM Conduit Terminal Test Script (.bat — Windows Batch)
 REM Tests PTY features: colors, input, timing, etc.
 REM ============================================================
 setlocal EnableDelayedExpansion
+chcp 65001 >nul
 
 cls
 
@@ -41,13 +42,15 @@ echo.
 
 REM --- Section 4: Interactive Input ---
 echo [1m[4/6] Interactive Input Test[0m
-echo   [33mType your name and press Enter:[0m
+echo   [33mType your name and press Enter (q to quit):[0m
 set /p "USERNAME=  > "
+if /i "%USERNAME%"=="q" goto :done
 echo   [32mHello, [1m%USERNAME%[0;32m![0m
 echo.
 
-echo   [33mContinue? [y/n]:[0m
+echo   [33mContinue? [y/n] (q to quit):[0m
 set /p "CONT=  > "
+if /i "%CONT%"=="q" goto :done
 if /i "%CONT%"=="y" (
     echo   [32mGreat, continuing![0m
 ) else (
@@ -85,4 +88,5 @@ echo [1;32m  All tests passed! (.bat on Windows)[0m
 echo [2m  Date: %DATE% Time: %TIME%[0m
 echo [1;36m══════════════════════════════════════════[0m
 
+:done
 endlocal
