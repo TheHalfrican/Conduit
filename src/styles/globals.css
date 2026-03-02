@@ -157,6 +157,11 @@
   background: #555555;
 }
 
+.xterm-container .xterm-viewport::-webkit-scrollbar-button {
+  background: #000000;
+  box-shadow: none;
+}
+
 /* ===== Desktop backgrounds ===== */
 
 /* Win98: classic teal desktop */
