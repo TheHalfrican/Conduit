@@ -93,6 +93,11 @@ fn build_script_command(script_path: &str, run_as_admin: bool) -> CommandBuilder
                     c.args(["/C", script_path]);
                     c
                 }
+                "js" => {
+                    let mut c = CommandBuilder::new("node");
+                    c.arg(script_path);
+                    c
+                }
                 _ => CommandBuilder::new(script_path),
             }
         };

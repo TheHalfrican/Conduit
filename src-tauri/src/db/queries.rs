@@ -22,7 +22,7 @@ fn check_is_executable(path: &str) -> bool {
             .unwrap_or("")
             .to_lowercase();
         match ext.as_str() {
-            "bat" | "cmd" | "ps1" | "exe" => true,
+            "bat" | "cmd" | "ps1" | "exe" | "js" => true,
             _ => std::fs::metadata(path).is_ok(),
         }
     }

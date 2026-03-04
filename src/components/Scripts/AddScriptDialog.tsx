@@ -42,7 +42,7 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
     try {
       const selected = await open({
         filters: [
-          { name: "Scripts", extensions: ["sh", "command", "bash", "zsh", "bat", "cmd", "ps1"] },
+          { name: "Scripts", extensions: ["sh", "command", "bash", "zsh", "bat", "cmd", "ps1", "js"] },
         ],
         multiple: false,
       });
@@ -51,7 +51,7 @@ export function AddScriptDialog({ open: isOpen, onClose }: AddScriptDialogProps)
         setPath(selected);
         if (!name) {
           const filename = selected.split(/[/\\]/).pop() ?? "";
-          setName(filename.replace(/\.(sh|command|bash|zsh|bat|cmd|ps1)$/, ""));
+          setName(filename.replace(/\.(sh|command|bash|zsh|bat|cmd|ps1|js)$/, ""));
         }
       }
     } catch (err) {
