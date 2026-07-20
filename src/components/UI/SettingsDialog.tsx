@@ -4,13 +4,22 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useSettingsStore } from "../../stores/useSettingsStore";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "./Button";
-import type { Theme } from "../../types";
+import type { PowerShellVersion, Theme } from "../../types";
 
 const THEMES: { id: Theme; name: string; description: string }[] = [
   { id: "win98", name: "Windows 98", description: "Classic gray bevels" },
   { id: "macos8", name: "Mac OS 8", description: "Platinum elegance" },
   { id: "xp", name: "Windows XP", description: "Luna blue chrome" },
   { id: "vista", name: "Windows Vista", description: "Aero glass" },
+];
+
+const POWERSHELL_VERSIONS: {
+  id: PowerShellVersion;
+  name: string;
+  description: string;
+}[] = [
+  { id: "ps7", name: "PowerShell 7", description: "Modern pwsh.exe (recommended)" },
+  { id: "ps5", name: "Windows PowerShell 5.1", description: "Legacy powershell.exe" },
 ];
 
 interface SettingsDialogProps {
@@ -27,12 +36,14 @@ export function SettingsDialog({ open: isOpen, onClose }: SettingsDialogProps) {
   const [editorPath, setEditorPath] = useState("");
   const [selectedTheme, setSelectedTheme] = useState<Theme>("win98");
   const [originalTheme, setOriginalTheme] = useState<Theme>("win98");
+  const [psVersion, setPsVersion] = useState<PowerShellVersion>("ps7");
 
   useEffect(() => {
     if (isOpen && settings) {
       setEditorPath(settings.editorPath);
       setSelectedTheme(settings.theme);
       setOriginalTheme(settings.theme);
+      setPsVersion(settings.powershellVersion);
     }
   }, [isOpen, settings]);
 
@@ -62,7 +73,11 @@ export function SettingsDialog({ open: isOpen, onClose }: SettingsDialogProps) {
 
   async function handleSave() {
     try {
-      await updateSettings({ editorPath: editorPath.trim(), theme: selectedTheme });
+      await updateSettings({
+        editorPath: editorPath.trim(),
+        theme: selectedTheme,
+        powershellVersion: psVersion,
+      });
       toast.success("Settings saved");
       onClose();
     } catch {
@@ -142,6 +157,39 @@ export function SettingsDialog({ open: isOpen, onClose }: SettingsDialogProps) {
               <Button type="button" variant="secondary" onClick={handleBrowse}>
                 Browse
               </Button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-hub-text mb-1.5">
+              PowerShell (for .ps1 scripts)
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {POWERSHELL_VERSIONS.map((version) => (
+                <button
+                  key={version.id}
+                  onClick={() => setPsVersion(version.id)}
+                  className={
+                    "text-left px-2.5 py-2 text-sm shadow-win-button " +
+                    (psVersion === version.id
+                      ? "bg-accent text-white shadow-win-button-pressed"
+                      : "bg-win-button-face text-hub-text hover:shadow-win-button-pressed")
+                  }
+                  style={{ borderRadius: "var(--theme-radius)" }}
+                >
+                  <div className="font-semibold text-xs">{version.name}</div>
+                  <div
+                    className={
+                      "text-[10px] mt-0.5 " +
+                      (psVersion === version.id
+                        ? "text-white/80"
+                        : "text-hub-text-dim")
+                    }
+                  >
+                    {version.description}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 

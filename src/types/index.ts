@@ -68,13 +68,17 @@ export interface NewSchedule {
 
 export type Theme = "win98" | "macos8" | "xp" | "vista";
 
+export type PowerShellVersion = "ps5" | "ps7";
+
 export interface Settings {
   id: number;
   editorPath: string;
   theme: Theme;
+  powershellVersion: PowerShellVersion;
 }
 
 export interface UpdateSettings {
   editorPath: string | null;
   theme: Theme | null;
+  powershellVersion: PowerShellVersion | null;
 }

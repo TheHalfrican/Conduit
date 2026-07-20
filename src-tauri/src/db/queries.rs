@@ -389,12 +389,14 @@ pub fn get_schedule_by_id(conn: &Connection, id: i64) -> Result<Schedule, rusqli
 // --- Settings queries ---
 
 pub fn get_settings(conn: &Connection) -> Result<Settings, rusqlite::Error> {
-    let mut stmt = conn.prepare("SELECT id, editor_path, theme FROM settings WHERE id = 1")?;
+    let mut stmt =
+        conn.prepare("SELECT id, editor_path, theme, powershell_version FROM settings WHERE id = 1")?;
     stmt.query_row([], |row| {
         Ok(Settings {
             id: row.get(0)?,
             editor_path: row.get(1)?,
             theme: row.get(2)?,
+            powershell_version: row.get(3)?,
         })
     })
 }
@@ -410,6 +412,12 @@ pub fn upsert_settings(conn: &Connection, update: &UpdateSettings) -> Result<Set
         conn.execute(
             "UPDATE settings SET theme = ?1 WHERE id = 1",
             params![theme],
+        )?;
+    }
+    if let Some(ref powershell_version) = update.powershell_version {
+        conn.execute(
+            "UPDATE settings SET powershell_version = ?1 WHERE id = 1",
+            params![powershell_version],
         )?;
     }
     get_settings(conn)

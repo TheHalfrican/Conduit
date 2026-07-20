@@ -43,9 +43,10 @@ struct ScriptFinishedEvent {
     record_id: i64,
 }
 
-fn build_script_command(script_path: &str, run_as_admin: bool) -> CommandBuilder {
+fn build_script_command(script_path: &str, run_as_admin: bool, powershell_exe: &str) -> CommandBuilder {
     #[cfg(unix)]
     {
+        let _ = powershell_exe;
         let path_env = if cfg!(target_os = "macos") {
             "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
         } else {
@@ -67,7 +68,7 @@ fn build_script_command(script_path: &str, run_as_admin: bool) -> CommandBuilder
     #[cfg(target_os = "windows")]
     {
         let mut cmd = if run_as_admin {
-            let mut c = CommandBuilder::new("powershell.exe");
+            let mut c = CommandBuilder::new(powershell_exe);
             c.args([
                 "-Command",
                 &format!(
@@ -84,7 +85,7 @@ fn build_script_command(script_path: &str, run_as_admin: bool) -> CommandBuilder
                 .to_lowercase();
             match ext.as_str() {
                 "ps1" => {
-                    let mut c = CommandBuilder::new("powershell.exe");
+                    let mut c = CommandBuilder::new(powershell_exe);
                     c.args(["-ExecutionPolicy", "Bypass", "-File", script_path]);
                     c
                 }
@@ -118,11 +119,16 @@ pub async fn run_script(
     let pty_cols = cols.unwrap_or(80);
     let pty_rows = rows.unwrap_or(24);
 
-    // Get script from DB
-    let (script_path, run_as_admin) = {
+    // Get script and settings from DB
+    let (script_path, run_as_admin, powershell_exe) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let script = queries::get_script_by_id(&conn, script_id).map_err(|e| e.to_string())?;
-        (script.path, script.run_as_admin)
+        let settings = queries::get_settings(&conn).map_err(|e| e.to_string())?;
+        (
+            script.path,
+            script.run_as_admin,
+            crate::commands::powershell_exe(&settings.powershell_version),
+        )
     };
 
     // Create run record
@@ -145,7 +151,7 @@ pub async fn run_script(
         .map_err(|e| e.to_string())?;
 
     // Spawn child on the slave
-    let cmd = build_script_command(&script_path, run_as_admin);
+    let cmd = build_script_command(&script_path, run_as_admin, powershell_exe);
     let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     let child_pid = child.process_id().unwrap_or(0);
 

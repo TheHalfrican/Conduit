@@ -67,5 +67,10 @@ pub fn initialize(conn: &Connection) -> Result<(), rusqlite::Error> {
     // Migration: add theme column to settings
     let _ = conn.execute_batch("ALTER TABLE settings ADD COLUMN theme TEXT NOT NULL DEFAULT 'win98'");
 
+    // Migration: add PowerShell version choice ('ps5' or 'ps7') to settings
+    let _ = conn.execute_batch(
+        "ALTER TABLE settings ADD COLUMN powershell_version TEXT NOT NULL DEFAULT 'ps7'",
+    );
+
     Ok(())
 }

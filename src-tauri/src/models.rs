@@ -88,6 +88,7 @@ pub struct Settings {
     pub id: i64,
     pub editor_path: String,
     pub theme: String,
+    pub powershell_version: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -95,4 +96,5 @@ pub struct Settings {
 pub struct UpdateSettings {
     pub editor_path: Option<String>,
     pub theme: Option<String>,
+    pub powershell_version: Option<String>,
 }

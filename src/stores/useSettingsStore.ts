@@ -42,6 +42,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
     const settings = await api.updateSettings({
       editorPath: null,
       theme,
+      powershellVersion: null,
     });
     set({ settings });
   },

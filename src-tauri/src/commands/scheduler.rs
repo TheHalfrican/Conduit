@@ -126,7 +126,7 @@ mod platform {
         Value::Dictionary(dict.into_iter().collect())
     }
 
-    pub fn create_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+    pub fn create_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule, _powershell_exe: &str) -> Result<(), String> {
         let plist_value = build_plist(label, script_path, schedule);
         let plist_path = get_plist_path(label);
 
@@ -160,8 +160,8 @@ mod platform {
         Ok(())
     }
 
-    pub fn enable_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
-        create_scheduled_task(label, script_path, schedule)
+    pub fn enable_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule, _powershell_exe: &str) -> Result<(), String> {
+        create_scheduled_task(label, script_path, schedule, _powershell_exe)
     }
 
     pub fn disable_scheduled_task(label: &str) -> Result<(), String> {
@@ -310,7 +310,7 @@ mod platform {
         Ok(())
     }
 
-    pub fn create_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+    pub fn create_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule, _powershell_exe: &str) -> Result<(), String> {
         write_unit_files(label, script_path, schedule)?;
 
         let timer_unit = format!("{}.timer", label_to_unit_name(label));
@@ -335,7 +335,7 @@ mod platform {
         Ok(())
     }
 
-    pub fn enable_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+    pub fn enable_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule, _powershell_exe: &str) -> Result<(), String> {
         // Re-write files in case they were cleaned up
         if !get_timer_path(label).exists() {
             write_unit_files(label, script_path, schedule)?;
@@ -367,7 +367,7 @@ mod platform {
 mod platform {
     use super::*;
 
-    fn build_schtasks_command(label: &str, script_path: &str, schedule: &NewSchedule) -> Vec<String> {
+    fn build_schtasks_command(label: &str, script_path: &str, schedule: &NewSchedule, powershell_exe: &str) -> Vec<String> {
         let logs_dir = get_logs_dir();
         let stdout_log = logs_dir.join(format!("{}.stdout.log", label));
 
@@ -379,7 +379,8 @@ mod platform {
 
         let tr = match ext.as_str() {
             "ps1" => format!(
-                "powershell.exe -ExecutionPolicy Bypass -File \"{}\" > \"{}\" 2>&1",
+                "{} -ExecutionPolicy Bypass -File \"{}\" > \"{}\" 2>&1",
+                powershell_exe,
                 script_path,
                 stdout_log.to_string_lossy()
             ),
@@ -450,8 +451,8 @@ mod platform {
         args
     }
 
-    pub fn create_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
-        let args = build_schtasks_command(label, script_path, schedule);
+    pub fn create_scheduled_task(label: &str, script_path: &str, schedule: &NewSchedule, powershell_exe: &str) -> Result<(), String> {
+        let args = build_schtasks_command(label, script_path, schedule, powershell_exe);
         let output = std::process::Command::new("schtasks")
             .args(&args)
             .output()
@@ -478,9 +479,9 @@ mod platform {
         Ok(())
     }
 
-    pub fn enable_scheduled_task(_label: &str, script_path: &str, schedule: &NewSchedule) -> Result<(), String> {
+    pub fn enable_scheduled_task(_label: &str, script_path: &str, schedule: &NewSchedule, powershell_exe: &str) -> Result<(), String> {
         // On Windows, re-creating the task effectively enables it
-        create_scheduled_task(_label, script_path, schedule)?;
+        create_scheduled_task(_label, script_path, schedule, powershell_exe)?;
         let output = std::process::Command::new("schtasks")
             .args(["/Change", "/TN", _label, "/ENABLE"])
             .output()
@@ -542,7 +543,9 @@ pub fn create_schedule(
     let task_label = generate_task_label(script_id);
 
     // Create the OS-level scheduled task
-    platform::create_scheduled_task(&task_label, &script.path, &new_schedule)?;
+    let settings = queries::get_settings(&conn).map_err(|e| e.to_string())?;
+    let ps_exe = crate::commands::powershell_exe(&settings.powershell_version);
+    platform::create_scheduled_task(&task_label, &script.path, &new_schedule, ps_exe)?;
 
     // Insert into DB
     let schedule = queries::insert_schedule(&conn, &new_schedule, &task_label).map_err(|e| e.to_string())?;
@@ -564,7 +567,9 @@ pub fn update_schedule(db: State<'_, Database>, schedule_id: i64, enabled: bool)
             weekday: schedule.weekday,
             interval_seconds: schedule.interval_seconds,
         };
-        platform::enable_scheduled_task(&schedule.plist_label, &script.path, &new_schedule)?;
+        let settings = queries::get_settings(&conn).map_err(|e| e.to_string())?;
+        let ps_exe = crate::commands::powershell_exe(&settings.powershell_version);
+        platform::enable_scheduled_task(&schedule.plist_label, &script.path, &new_schedule, ps_exe)?;
     } else {
         platform::disable_scheduled_task(&schedule.plist_label)?;
     }
@@ -601,7 +606,9 @@ pub fn toggle_schedule(db: State<'_, Database>, schedule_id: i64) -> Result<bool
             weekday: schedule.weekday,
             interval_seconds: schedule.interval_seconds,
         };
-        platform::enable_scheduled_task(&schedule.plist_label, &script.path, &new_schedule)?;
+        let settings = queries::get_settings(&conn).map_err(|e| e.to_string())?;
+        let ps_exe = crate::commands::powershell_exe(&settings.powershell_version);
+        platform::enable_scheduled_task(&schedule.plist_label, &script.path, &new_schedule, ps_exe)?;
     } else {
         platform::disable_scheduled_task(&schedule.plist_label)?;
     }
@@ -620,6 +627,8 @@ pub fn get_schedules(db: State<'_, Database>, script_id: i64) -> Result<Vec<Sche
 pub fn sync_schedules(db: State<'_, Database>) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let schedules = queries::get_all_schedules(&conn).map_err(|e| e.to_string())?;
+    let settings = queries::get_settings(&conn).map_err(|e| e.to_string())?;
+    let ps_exe = crate::commands::powershell_exe(&settings.powershell_version);
 
     for schedule in schedules {
         if schedule.enabled {
@@ -633,7 +642,7 @@ pub fn sync_schedules(db: State<'_, Database>) -> Result<(), String> {
                         weekday: schedule.weekday,
                         interval_seconds: schedule.interval_seconds,
                     };
-                    let _ = platform::create_scheduled_task(&schedule.plist_label, &script.path, &new_schedule);
+                    let _ = platform::create_scheduled_task(&schedule.plist_label, &script.path, &new_schedule, ps_exe);
                 }
             }
         } else {
